@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<meta name="canvas:aspect-ratio" content="16:9">
+<meta name="canvas:width" content="1920">
+<meta name="canvas:height" content="1080">
+<title>智能寻踪 - 平安校园指挥系统</title>
+<style>
+:root {
+  --seed-bg: #08090a;
+  --seed-fg: #f7f8f8;
+  --seed-primary: #0071e3;
+  --seed-accent: #2997ff;
+  --seed-surface: #0f1011;
+  --seed-radius: 10px;
+  --bg-deep: #08090a;
+  --bg-panel: #0f1011;
+  --bg-elevated: #191a1b;
+  --bg-surface: #28282c;
+  --text-primary: #f7f8f8;
+  --text-secondary: #d0d6e0;
+  --text-muted: #8a8f98;
+  --text-faint: #62666d;
+  --accent: #0071e3;
+  --accent-bright: #2997ff;
+  --accent-hover: #0077ed;
+  --green: #30d158;
+  --red: #ff453a;
+  --yellow: #ffd60a;
+  --orange: #ff9f0a;
+  --border-subtle: rgba(255,255,255,0.05);
+  --border-standard: rgba(255,255,255,0.08);
+  --border-hover: rgba(255,255,255,0.12);
+  --surface-translucent: rgba(255,255,255,0.03);
+  --surface-hover: rgba(255,255,255,0.06);
+  --text-on-accent: #ffffff;
+  --font-display: system-ui, 'Segoe UI', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-body: system-ui, 'Segoe UI', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-mono: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  width:100vw; height:100vh; overflow:hidden;
+  background:var(--bg-deep); color:var(--text-primary);
+  font-family:var(--font-body); font-size:14px; font-weight:400;
+  line-height:1.5; letter-spacing:-0.01em;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ===== LAYOUT ===== */
+.app {
+  width:100vw; height:100vh;
+  display:grid;
+  grid-template-columns: 300px 1fr 310px;
+  grid-template-rows: 52px 1fr;
+  grid-template-areas: "nav nav nav" "left center right";
+}
+
+/* ===== TOP NAV ===== */
+.top-nav {
+  grid-area:nav; z-index:20;
+  display:flex; align-items:center; padding:0 20px;
+  background:rgba(8,9,10,0.92); backdrop-filter:blur(20px) saturate(1.6);
+  border-bottom:1px solid var(--border-subtle);
+}
+.nav-brand { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.nav-brand-icon { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:var(--accent); }
+.nav-brand-icon svg { width:16px; height:16px; stroke:var(--text-on-accent); fill:none; stroke-width:1.8; }
+.nav-title { font-size:16px; font-weight:600; letter-spacing:-0.02em; color:var(--text-primary); }
+.nav-subtitle { font-size:9px; font-weight:400; color:var(--text-faint); letter-spacing:0.08em; text-transform:uppercase; margin-top:-1px; }
+.nav-tabs { display:flex; gap:2px; margin:0 auto; }
+.nav-tab { padding:6px 14px; font-size:13px; font-weight:500; color:var(--text-muted); border-radius:6px; cursor:pointer; transition:all 0.2s; user-select:none; }
+.nav-tab:hover { color:var(--text-secondary); background:var(--surface-hover); }
+.nav-tab.active { color:var(--text-primary); background:rgba(255,255,255,0.08); }
+.nav-info { display:flex; align-items:center; gap:16px; flex-shrink:0; }
+.nav-weather { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-muted); }
+.nav-weather svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.5; }
+.nav-time { font-family:var(--font-mono); font-size:15px; font-weight:400; color:var(--text-primary); letter-spacing:-0.02em; }
+.nav-date { font-size:11px; color:var(--text-faint); }
+
+/* ===== LEFT PANEL ===== */
+.left-panel {
+  grid-area:left; display:flex; flex-direction:column;
+  background:var(--bg-panel); border-right:1px solid var(--border-subtle); overflow:hidden;
+}
+.panel-section { padding:14px 16px; border-bottom:1px solid var(--border-subtle); }
+.section-title { font-size:11px; font-weight:600; color:var(--text-faint); letter-spacing:0.04em; text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.section-title-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); }
+
+/* Search mode toggle */
+.search-mode { display:flex; gap:2px; padding:2px; background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:8px; margin-bottom:12px; }
+.search-mode-btn { flex:1; padding:8px 0; font-size:12px; font-weight:500; color:var(--text-faint); border-radius:6px; cursor:pointer; transition:all 0.15s; text-align:center; border:none; background:transparent; font-family:var(--font-body); display:flex; align-items:center; justify-content:center; gap:5px; }
+.search-mode-btn:hover { color:var(--text-muted); }
+.search-mode-btn.active { background:var(--accent); color:var(--text-on-accent); }
+.search-mode-btn svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.6; }
+
+/* Face upload */
+.face-upload { width:100%; aspect-ratio:1; max-height:180px; border:2px dashed var(--border-standard); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer; transition:all 0.2s; margin-bottom:12px; position:relative; overflow:hidden; }
+.face-upload:hover { border-color:var(--accent); background:rgba(41,151,255,0.04); }
+.face-upload.has-image { border-style:solid; border-color:var(--accent); }
+.face-upload svg { width:32px; height:32px; stroke:var(--text-faint); fill:none; stroke-width:1.2; }
+.face-upload-text { font-size:12px; color:var(--text-faint); }
+.face-upload-hint { font-size:10px; color:var(--text-faint); opacity:0.6; }
+.face-preview { position:absolute; inset:0; object-fit:cover; width:100%; height:100%; display:none; }
+.face-upload.has-image .face-preview { display:block; }
+.face-upload.has-image svg, .face-upload.has-image .face-upload-text, .face-upload.has-image .face-upload-hint { display:none; }
+.face-match-ring { position:absolute; inset:4px; border-radius:8px; border:2px solid var(--green); display:none; }
+.face-upload.matched .face-match-ring { display:block; animation:matchPulse 2s ease-in-out infinite; }
+@keyframes matchPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+/* License plate input */
+.plate-input-wrap { margin-bottom:12px; }
+.plate-input { width:100%; padding:12px 14px; background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:8px; color:var(--text-primary); font-size:18px; font-family:var(--font-mono); font-weight:600; letter-spacing:0.1em; text-align:center; text-transform:uppercase; outline:none; transition:border-color 0.2s; }
+.plate-input::placeholder { color:var(--text-faint); font-weight:400; letter-spacing:0; font-size:14px; text-transform:none; }
+.plate-input:focus { border-color:var(--accent); }
+
+/* Filters */
+.filter-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.filter-label { font-size:11px; color:var(--text-muted); width:52px; flex-shrink:0; }
+.filter-select { flex:1; padding:6px 8px; background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:5px; color:var(--text-secondary); font-size:12px; font-family:var(--font-body); outline:none; cursor:pointer; }
+.filter-select option { background:var(--bg-panel); color:var(--text-secondary); }
+
+.search-btn { width:100%; padding:10px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.15s; text-align:center; border:none; background:var(--accent); color:var(--text-on-accent); font-family:var(--font-body); display:flex; align-items:center; justify-content:center; gap:6px; }
+.search-btn:hover { background:var(--accent-hover); }
+.search-btn svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; }
+
+/* Recent searches */
+.left-scroll { flex:1; overflow-y:auto; padding:12px 16px; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.08) transparent; }
+.left-scroll::-webkit-scrollbar { width:4px; }
+.left-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:2px; }
+.recent-item { display:flex; align-items:center; gap:8px; padding:8px; border-radius:6px; cursor:pointer; transition:all 0.15s; margin-bottom:4px; }
+.recent-item:hover { background:var(--surface-hover); }
+.recent-avatar { width:32px; height:32px; border-radius:6px; background:linear-gradient(135deg, var(--bg-elevated), var(--bg-surface)); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.recent-avatar svg { width:16px; height:16px; stroke:var(--text-faint); fill:none; stroke-width:1.4; }
+.recent-info { flex:1; min-width:0; }
+.recent-name { font-size:12px; font-weight:500; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.recent-meta { font-size:10px; color:var(--text-faint); }
+.recent-time { font-family:var(--font-mono); font-size:10px; color:var(--text-faint); flex-shrink:0; }
+
+/* ===== CENTER — Results ===== */
+.center-area { grid-area:center; display:flex; flex-direction:column; overflow:hidden; }
+
+/* Results toolbar */
+.results-toolbar { display:flex; align-items:center; padding:10px 20px; gap:12px; background:rgba(15,16,17,0.5); backdrop-filter:blur(8px); border-bottom:1px solid var(--border-subtle); flex-shrink:0; }
+.results-stats { display:flex; gap:16px; }
+.results-stat { display:flex; align-items:center; gap:5px; }
+.results-stat-val { font-family:var(--font-mono); font-size:16px; font-weight:600; color:var(--accent-bright); }
+.results-stat-label { font-size:11px; color:var(--text-muted); }
+.results-spacer { flex:1; }
+.results-sort { display:flex; align-items:center; gap:6px; }
+.results-sort-label { font-size:11px; color:var(--text-muted); }
+.results-sort-select { padding:4px 8px; background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:4px; color:var(--text-secondary); font-size:11px; font-family:var(--font-body); outline:none; cursor:pointer; }
+.results-view-toggle { display:flex; gap:2px; }
+.view-btn { width:28px; height:28px; border-radius:5px; background:var(--surface-translucent); border:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.15s; }
+.view-btn:hover { background:var(--surface-hover); }
+.view-btn.active { background:rgba(255,255,255,0.08); border-color:var(--border-standard); }
+.view-btn svg { width:14px; height:14px; stroke:var(--text-muted); fill:none; stroke-width:1.6; }
+
+/* Results grid */
+.results-grid { flex:1; overflow-y:auto; padding:16px 20px; display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px; align-content:start; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.08) transparent; }
+.results-grid::-webkit-scrollbar { width:4px; }
+.results-grid::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:2px; }
+
+/* Result card */
+.result-card { background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:8px; overflow:hidden; cursor:pointer; transition:all 0.2s; }
+.result-card:hover { border-color:var(--border-hover); background:var(--bg-surface); transform:translateY(-2px); }
+.result-card.selected { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+.result-thumb { width:100%; aspect-ratio:16/10; position:relative; overflow:hidden; background:linear-gradient(145deg, #0c1220, #0a0f18); }
+.result-thumb::before { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(41,151,255,0.02) 1px, transparent 1px),linear-gradient(90deg, rgba(41,151,255,0.02) 1px, transparent 1px); background-size:20px 20px; }
+.result-thumb::after { content:''; position:absolute; inset:0; background:radial-gradient(circle at 40% 50%, rgba(41,151,255,0.06), transparent 50%); }
+.result-face-box { position:absolute; border:1.5px solid var(--green); border-radius:3px; z-index:2; }
+.result-match-badge { position:absolute; top:6px; right:6px; z-index:3; padding:2px 6px; border-radius:4px; font-family:var(--font-mono); font-size:11px; font-weight:600; }
+.result-match-badge.high { background:rgba(48,209,88,0.20); color:var(--green); border:1px solid rgba(48,209,88,0.30); }
+.result-match-badge.medium { background:rgba(255,214,10,0.15); color:var(--yellow); border:1px solid rgba(255,214,10,0.25); }
+.result-body { padding:10px 12px; }
+.result-location { font-size:12px; font-weight:500; color:var(--text-secondary); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.result-camera { font-size:10px; color:var(--text-faint); }
+.result-footer { display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+.result-time { font-family:var(--font-mono); font-size:11px; color:var(--text-faint); }
+.result-action { font-size:10px; font-weight:500; color:var(--accent-bright); cursor:pointer; transition:color 0.15s; }
+.result-action:hover { color:var(--text-primary); }
+
+/* ===== RIGHT PANEL ===== */
+.right-panel { grid-area:right; display:flex; flex-direction:column; background:var(--bg-panel); border-left:1px solid var(--border-subtle); overflow:hidden; }
+.right-scroll { flex:1; overflow-y:auto; padding:14px; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.08) transparent; }
+.right-scroll::-webkit-scrollbar { width:4px; }
+.right-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:2px; }
+
+/* Detail capture image */
+.detail-capture { width:100%; aspect-ratio:4/3; border-radius:8px; position:relative; overflow:hidden; background:linear-gradient(145deg, #0c1220, #0a0f18); border:1px solid var(--border-subtle); margin-bottom:12px; }
+.detail-capture::before { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(41,151,255,0.02) 1px, transparent 1px),linear-gradient(90deg, rgba(41,151,255,0.02) 1px, transparent 1px); background-size:24px 24px; }
+.detail-capture::after { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 40% 45%, rgba(41,151,255,0.08), transparent 55%); }
+.detail-face-box { position:absolute; border:2px solid var(--green); border-radius:4px; z-index:2; box-shadow:0 0 12px rgba(48,209,88,0.2); }
+.detail-face-label { position:absolute; top:-18px; left:0; background:var(--green); color:var(--bg-deep); font-size:9px; font-weight:600; padding:1px 5px; border-radius:3px; white-space:nowrap; }
+.detail-capture-info { position:absolute; bottom:0; left:0; right:0; padding:8px 10px; background:linear-gradient(transparent, rgba(0,0,0,0.7)); z-index:3; display:flex; justify-content:space-between; align-items:flex-end; }
+.detail-capture-cam { font-size:11px; color:var(--text-secondary); }
+.detail-capture-time { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); }
+
+/* Person identity */
+.identity-card { padding:12px; border-radius:8px; background:rgba(41,151,255,0.06); border:1px solid rgba(41,151,255,0.15); margin-bottom:12px; }
+.identity-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.identity-avatar { width:44px; height:44px; border-radius:8px; background:linear-gradient(135deg, var(--accent), var(--accent-bright)); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.identity-avatar svg { width:22px; height:22px; stroke:var(--text-on-accent); fill:none; stroke-width:1.6; }
+.identity-name { font-size:16px; font-weight:600; color:var(--text-primary); }
+.identity-dept { font-size:11px; color:var(--text-muted); margin-top:1px; }
+.identity-match { margin-left:auto; text-align:right; }
+.identity-match-val { font-family:var(--font-mono); font-size:20px; font-weight:700; color:var(--green); }
+.identity-match-label { font-size:9px; color:var(--text-faint); }
+.identity-rows { display:flex; flex-direction:column; gap:1px; }
+.identity-row { display:flex; justify-content:space-between; padding:4px 0; font-size:12px; }
+.identity-row-label { color:var(--text-faint); }
+.identity-row-value { color:var(--text-secondary); font-weight:500; }
+.identity-row-value.mono { font-family:var(--font-mono); }
+
+/* Action buttons */
+.action-group { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+.action-btn { display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:8px; cursor:pointer; transition:all 0.15s; border:1px solid var(--border-subtle); background:var(--surface-translucent); font-family:var(--font-body); }
+.action-btn:hover { background:var(--surface-hover); border-color:var(--border-hover); }
+.action-btn.primary { background:rgba(41,151,255,0.10); border-color:rgba(41,151,255,0.20); }
+.action-btn.primary:hover { background:rgba(41,151,255,0.18); }
+.action-btn svg { width:16px; height:16px; stroke:var(--accent-bright); fill:none; stroke-width:1.6; flex-shrink:0; }
+.action-btn-text { font-size:13px; font-weight:500; color:var(--text-secondary); }
+.action-btn.primary .action-btn-text { color:var(--accent-bright); }
+
+/* Capture point list */
+.capture-list { display:flex; flex-direction:column; gap:4px; }
+.capture-item { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; cursor:pointer; transition:all 0.15s; }
+.capture-item:hover { background:var(--surface-hover); }
+.capture-item.active { background:rgba(41,151,255,0.10); }
+.capture-thumb { width:36px; height:28px; border-radius:4px; background:linear-gradient(135deg, #0c1220, #10151e); border:1px solid var(--border-subtle); flex-shrink:0; position:relative; overflow:hidden; }
+.capture-thumb::after { content:''; position:absolute; inset:0; background:radial-gradient(circle at 50% 50%, rgba(41,151,255,0.06), transparent 60%); }
+.capture-info { flex:1; min-width:0; }
+.capture-name { font-size:11px; font-weight:500; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.capture-time { font-size:10px; color:var(--text-faint); font-family:var(--font-mono); }
+.capture-match { font-family:var(--font-mono); font-size:11px; font-weight:600; flex-shrink:0; }
+.capture-match.high { color:var(--green); }
+.capture-match.medium { color:var(--yellow); }
+
+/* ===== TOAST ===== */
+.click-toast { position:fixed; bottom:72px; left:50%; transform:translateX(-50%) translateY(12px); background:rgba(41,151,255,0.92); color:var(--text-on-accent); font-size:13px; font-weight:500; padding:8px 22px; border-radius:980px; pointer-events:none; opacity:0; z-index:100; backdrop-filter:blur(12px); transition:opacity 0.25s, transform 0.25s; white-space:nowrap; }
+.click-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app" data-component="Smart Search Dashboard">
+
+  <!-- TOP NAV -->
+  <nav class="top-nav" data-component="Top Navigation">
+    <div class="nav-brand">
+      <div class="nav-brand-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+      <div><div class="nav-title">平安校园指挥系统</div><div class="nav-subtitle">SMART SEARCH · SAFE CAMPUS</div></div>
+    </div>
+    <div class="nav-tabs">
+      <div class="nav-tab" onclick="location.href='campus-map.html'">可视化地图</div>
+      <div class="nav-tab" onclick="location.href='video-wall.html'">视频监控</div>
+      <div class="nav-tab" onclick="location.href='data-cockpit.html'">数据中心</div>
+      <div class="nav-tab active">智能寻踪</div>
+      <div class="nav-tab" onclick="showToast('资源管理模块开发中')">资源管理</div>
+    </div>
+    <div class="nav-info">
+      <div class="nav-weather"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><span>晴 28°C</span></div>
+      <div><div class="nav-time" id="navTime">14:32:08</div><div class="nav-date">2026-06-26 星期四</div></div>
+    </div>
+  </nav>
+
+  <!-- LEFT PANEL -->
+  <aside class="left-panel" data-component="Search Panel">
+    <div class="panel-section">
+      <div class="search-mode">
+        <button class="search-mode-btn active" onclick="setMode(this,'person')">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          人员寻踪
+        </button>
+        <button class="search-mode-btn" onclick="setMode(this,'vehicle')">
+          <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 5 20 16 16 13"/></svg>
+          车辆寻踪
+        </button>
+      </div>
+
+      <!-- Person mode -->
+      <div id="personSearch">
+        <div class="face-upload matched" id="faceUpload" onclick="showToast('已上传人脸图片，正在检索...')">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span class="face-upload-text">点击上传人脸照片</span>
+          <span class="face-upload-hint">支持 JPG / PNG，正面免冠照最佳</span>
+          <div class="face-match-ring"></div>
+        </div>
+      </div>
+
+      <!-- Vehicle mode (hidden by default) -->
+      <div id="vehicleSearch" style="display:none">
+        <div class="plate-input-wrap">
+          <input class="plate-input" type="text" placeholder="输入车牌号码" value="渝A·88K72" maxlength="10" aria-label="输入车牌号码">
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <span class="filter-label">时间范围</span>
+        <select class="filter-select" aria-label="时间范围筛选">
+          <option>今日（06:00 - 现在）</option>
+          <option>昨日全天</option>
+          <option>最近 3 天</option>
+          <option>最近 7 天</option>
+          <option>自定义</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">区域范围</span>
+        <select class="filter-select" aria-label="区域范围筛选">
+          <option>全域（全部区域）</option>
+          <option>教学区 A</option>
+          <option>生活区 B</option>
+          <option>运动区 C</option>
+          <option>行政办公区 D</option>
+          <option>周界围栏</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">匹配置信</span>
+        <select class="filter-select" aria-label="匹配置信度筛选">
+          <option>≥ 80%（推荐）</option>
+          <option>≥ 90%（精确）</option>
+          <option>≥ 70%（宽泛）</option>
+          <option>全部</option>
+        </select>
+      </div>
+
+      <button class="search-btn" onclick="doSearch()">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        开始检索
+      </button>
+    </div>
+
+    <div class="left-scroll">
+      <div class="section-title"><div class="section-title-dot"></div>最近查询</div>
+      <div class="recent-item" onclick="showToast('已加载历史查询')">
+        <div class="recent-avatar"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div class="recent-info"><div class="recent-name">张明远 · 计算机学院</div><div class="recent-meta">10 条抓拍 · 全域</div></div>
+        <span class="recent-time">今日</span>
+      </div>
+      <div class="recent-item" onclick="showToast('已加载历史查询')">
+        <div class="recent-avatar"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 5 20 16 16 13"/></svg></div>
+        <div class="recent-info"><div class="recent-name">渝A·88K72</div><div class="recent-meta">6 条抓拍 · 教学区</div></div>
+        <span class="recent-time">昨日</span>
+      </div>
+      <div class="recent-item" onclick="showToast('已加载历史查询')">
+        <div class="recent-avatar"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div class="recent-info"><div class="recent-name">李芳 · 外国语学院</div><div class="recent-meta">8 条抓拍 · 全域</div></div>
+        <span class="recent-time">06-24</span>
+      </div>
+      <div class="recent-item" onclick="showToast('已加载历史查询')">
+        <div class="recent-avatar"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 5 20 16 16 13"/></svg></div>
+        <div class="recent-info"><div class="recent-name">渝B·3M921</div><div class="recent-meta">4 条抓拍 · 周界</div></div>
+        <span class="recent-time">06-23</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER — Results Grid -->
+  <main class="center-area" data-component="Search Results">
+    <!-- Person mode results -->
+    <div id="personResults">
+    <div class="results-toolbar">
+      <div class="results-stats">
+        <div class="results-stat"><span class="results-stat-val" data-value="23">23</span><span class="results-stat-label">条抓拍</span></div>
+        <div class="results-stat"><span class="results-stat-val" data-value="12">12</span><span class="results-stat-label">个摄像头</span></div>
+        <div class="results-stat"><span class="results-stat-val" data-value="5">5</span><span class="results-stat-label">个区域</span></div>
+        <div class="results-stat"><span class="results-stat-val" data-value="3h16m">3h16m</span><span class="results-stat-label">时间跨度</span></div>
+      </div>
+      <div class="results-spacer"></div>
+      <div class="results-sort">
+        <span class="results-sort-label">排序</span>
+        <select class="results-sort-select" aria-label="结果排序">
+          <option>时间正序</option>
+          <option>时间倒序</option>
+          <option>置信度优先</option>
+        </select>
+      </div>
+      <div class="results-view-toggle">
+        <div class="view-btn active" onclick="showToast('网格视图')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div>
+        <div class="view-btn" onclick="showToast('列表视图')"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+      </div>
+    </div>
+
+    <div class="results-grid" id="resultsGrid">
+      <!-- Card 1 -->
+      <div class="result-card selected" onclick="selectResult(this,0)">
+        <div class="result-thumb">
+          <div class="result-face-box" style="top:20%;left:30%;width:28%;height:45%"></div>
+          <div class="result-match-badge high">98.6%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">南门入口 · 人脸抓拍</div>
+          <div class="result-camera">CAM-S01</div>
+          <div class="result-footer"><span class="result-time">08:12:33</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+      <!-- Card 2 -->
+      <div class="result-card" onclick="selectResult(this,1)">
+        <div class="result-thumb">
+          <div class="result-face-box" style="top:18%;left:35%;width:25%;height:42%"></div>
+          <div class="result-match-badge high">97.2%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">主干道中段 · 道路监控</div>
+          <div class="result-camera">CAM-R03</div>
+          <div class="result-footer"><span class="result-time">08:18:07</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+      <!-- Card 3 -->
+      <div class="result-card" onclick="selectResult(this,2)">
+        <div class="result-thumb">
+          <div class="result-face-box" style="top:22%;left:28%;width:30%;height:48%"></div>
+          <div class="result-match-badge high">96.8%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">图书馆广场 · 全景</div>
+          <div class="result-camera">CAM-L02</div>
+          <div class="result-footer"><span class="result-time">08:25:41</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+      <!-- Card 4 -->
+      <div class="result-card" onclick="selectResult(this,3)">
+        <div class="result-thumb">
+          <div class="result-face-box" style="top:15%;left:32%;width:26%;height:44%"></div>
+          <div class="result-match-badge high">95.4%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">A1教学楼 1F · 大厅</div>
+          <div class="result-camera">CAM-A101</div>
+          <div class="result-footer"><span class="result-time">08:34:19</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+      <!-- Card 5 -->
+      <div class="result-card" onclick="selectResult(this,4)">
+        <div class="result-thumb">
+          <div class="result-face-box" style="top:20%;left:40%;width:22%;height:40%"></div>
+          <div class="result-match-badge high">94.1%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">食堂入口 · 门禁</div>
+          <div class="result-camera">CAM-F01</div>
+          <div class="result-footer"><span class="result-time">09:15:52</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+      <!-- Card 6 -->
+      <div class="result-card" onclick="selectResult(this,5)">
+        <div class="result-thumb">
+          <div class="result-face-box" style="top:18%;left:25%;width:30%;height:50%"></div>
+          <div class="result-match-badge high">93.5%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">实验楼前广场</div>
+          <div class="result-camera">CAM-E05</div>
+          <div class="result-footer"><span class="result-time">09:42:16</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+      <!-- Card 7 -->
+      <div class="result-card" onclick="selectResult(this,6)">
+        <div class="result-thumb">
+          <div class="result-face-box" style="top:22%;left:38%;width:24%;height:42%"></div>
+          <div class="result-match-badge medium">89.7%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">运动场西侧 · 通道</div>
+          <div class="result-camera">CAM-SP02</div>
+          <div class="result-footer"><span class="result-time">10:08:44</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+      <!-- Card 8 -->
+      <div class="result-card" onclick="selectResult(this,7)">
+        <div class="result-thumb">
+          <div class="result-face-box" style="top:16%;left:30%;width:28%;height:46%"></div>
+          <div class="result-match-badge medium">87.3%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">宿舍区B入口</div>
+          <div class="result-camera">CAM-B01</div>
+          <div class="result-footer"><span class="result-time">10:35:28</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /personResults -->
+
+    <!-- Vehicle mode results (hidden by default) -->
+    <div id="vehicleResults" style="display:none">
+    <div class="results-toolbar">
+      <div class="results-stats">
+        <div class="results-stat"><span class="results-stat-val" data-value="6">6</span><span class="results-stat-label">条抓拍</span></div>
+        <div class="results-stat"><span class="results-stat-val" data-value="4">4</span><span class="results-stat-label">个摄像头</span></div>
+        <div class="results-stat"><span class="results-stat-val" data-value="3">3</span><span class="results-stat-label">个区域</span></div>
+        <div class="results-stat"><span class="results-stat-val" data-value="1h42m">1h42m</span><span class="results-stat-label">时间跨度</span></div>
+      </div>
+      <div class="results-spacer"></div>
+      <div class="results-sort">
+        <span class="results-sort-label">排序</span>
+        <select class="results-sort-select" aria-label="结果排序">
+          <option>时间正序</option>
+          <option>时间倒序</option>
+          <option>置信度优先</option>
+        </select>
+      </div>
+      <div class="results-view-toggle">
+        <div class="view-btn active" onclick="showToast('网格视图')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div>
+        <div class="view-btn" onclick="showToast('列表视图')"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+      </div>
+    </div>
+    <div class="results-grid">
+      <div class="result-card selected" onclick="selectResult(this,0)">
+        <div class="result-thumb" style="background:linear-gradient(135deg,#1a2a3a,#0f1a24)">
+          <div class="result-plate-tag" style="position:absolute;bottom:18%;left:50%;transform:translateX(-50%);background:rgba(0,180,255,0.18);border:1px solid rgba(0,180,255,0.4);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;color:#00d4ff;letter-spacing:1px;font-family:monospace">渝A·88K72</div>
+          <div class="result-match-badge high">99.2%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">南门车道 · 车牌识别</div>
+          <div class="result-camera">CAM-S02</div>
+          <div class="result-footer"><span class="result-time">07:48:12</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+      <div class="result-card" onclick="selectResult(this,1)">
+        <div class="result-thumb" style="background:linear-gradient(135deg,#1e2a1e,#0f1a14)">
+          <div class="result-plate-tag" style="position:absolute;bottom:18%;left:50%;transform:translateX(-50%);background:rgba(0,180,255,0.18);border:1px solid rgba(0,180,255,0.4);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;color:#00d4ff;letter-spacing:1px;font-family:monospace">渝A·88K72</div>
+          <div class="result-match-badge high">98.7%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">主干道中段 · 卡口</div>
+          <div class="result-camera">CAM-R05</div>
+          <div class="result-footer"><span class="result-time">07:52:36</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+      <div class="result-card" onclick="selectResult(this,2)">
+        <div class="result-thumb" style="background:linear-gradient(135deg,#2a1e1e,#1a0f0f)">
+          <div class="result-plate-tag" style="position:absolute;bottom:18%;left:50%;transform:translateX(-50%);background:rgba(0,180,255,0.18);border:1px solid rgba(0,180,255,0.4);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;color:#00d4ff;letter-spacing:1px;font-family:monospace">渝A·88K72</div>
+          <div class="result-match-badge high">97.5%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">停车场入口 · 闸机</div>
+          <div class="result-camera">CAM-P01</div>
+          <div class="result-footer"><span class="result-time">08:05:19</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+      <div class="result-card" onclick="selectResult(this,3)">
+        <div class="result-thumb" style="background:linear-gradient(135deg,#1a1e2a,#0f141a)">
+          <div class="result-plate-tag" style="position:absolute;bottom:18%;left:50%;transform:translateX(-50%);background:rgba(0,180,255,0.18);border:1px solid rgba(0,180,255,0.4);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;color:#00d4ff;letter-spacing:1px;font-family:monospace">渝A·88K72</div>
+          <div class="result-match-badge high">96.8%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">实验楼环路 · 卡口</div>
+          <div class="result-camera">CAM-E03</div>
+          <div class="result-footer"><span class="result-time">08:22:41</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+      <div class="result-card" onclick="selectResult(this,4)">
+        <div class="result-thumb" style="background:linear-gradient(135deg,#2a2a1e,#1a1a0f)">
+          <div class="result-plate-tag" style="position:absolute;bottom:18%;left:50%;transform:translateX(-50%);background:rgba(0,180,255,0.18);border:1px solid rgba(0,180,255,0.4);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;color:#00d4ff;letter-spacing:1px;font-family:monospace">渝A·88K72</div>
+          <div class="result-match-badge medium">93.4%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">食堂后侧通道</div>
+          <div class="result-camera">CAM-F03</div>
+          <div class="result-footer"><span class="result-time">09:10:08</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+      <div class="result-card" onclick="selectResult(this,5)">
+        <div class="result-thumb" style="background:linear-gradient(135deg,#1e2a2a,#0f1a1a)">
+          <div class="result-plate-tag" style="position:absolute;bottom:18%;left:50%;transform:translateX(-50%);background:rgba(0,180,255,0.18);border:1px solid rgba(0,180,255,0.4);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;color:#00d4ff;letter-spacing:1px;font-family:monospace">渝A·88K72</div>
+          <div class="result-match-badge medium">91.6%</div>
+        </div>
+        <div class="result-body">
+          <div class="result-location">北门出口 · 车牌识别</div>
+          <div class="result-camera">CAM-N02</div>
+          <div class="result-footer"><span class="result-time">09:30:54</span><span class="result-action" onclick="event.stopPropagation();location.href='trajectory.html'">查看轨迹 →</span></div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /vehicleResults -->
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="right-panel" data-component="Detail Panel">
+    <div class="right-scroll">
+      <!-- Person mode detail -->
+      <div id="personDetail">
+      <div class="section-title"><div class="section-title-dot" style="background:var(--green)"></div>抓拍详情</div>
+
+      <div class="detail-capture">
+        <div class="detail-face-box" style="top:18%;left:28%;width:32%;height:52%">
+          <div class="detail-face-label">张明远 98.6%</div>
+        </div>
+        <div class="detail-capture-info">
+          <span class="detail-capture-cam">CAM-S01 南门入口</span>
+          <span class="detail-capture-time">08:12:33</span>
+        </div>
+      </div>
+
+      <div class="identity-card">
+        <div class="identity-header">
+          <div class="identity-avatar"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div><div class="identity-name">张明远</div><div class="identity-dept">计算机学院 · 教职工</div></div>
+          <div class="identity-match"><div class="identity-match-val" data-value="98.6%">98.6%</div><div class="identity-match-label">匹配置信度</div></div>
+        </div>
+        <div class="identity-rows">
+          <div class="identity-row"><span class="identity-row-label">工号</span><span class="identity-row-value mono">T20187</span></div>
+          <div class="identity-row"><span class="identity-row-label">联系电话</span><span class="identity-row-value mono">138****5621</span></div>
+          <div class="identity-row"><span class="identity-row-label">证件类型</span><span class="identity-row-value">教职工工作证</span></div>
+          <div class="identity-row"><span class="identity-row-label">黑名单</span><span class="identity-row-value" style="color:var(--green)">否</span></div>
+        </div>
+      </div>
+
+      <div class="section-title"><div class="section-title-dot"></div>操作</div>
+      <div class="action-group">
+        <div class="action-btn primary" onclick="location.href='trajectory.html'">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16"/></svg>
+          <span class="action-btn-text">追溯完整轨迹</span>
+        </div>
+        <div class="action-btn" onclick="showToast('正在播放关联监控录像...')">
+          <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          <span class="action-btn-text">播放关联录像</span>
+        </div>
+        <div class="action-btn" onclick="showToast('已导出检索报告')">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="action-btn-text">导出检索报告</span>
+        </div>
+      </div>
+
+      <div class="section-title"><div class="section-title-dot" style="background:var(--orange)"></div>全部抓拍点位</div>
+      <div class="capture-list">
+        <div class="capture-item active" onclick="showToast('已定位到南门入口')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-S01 南门入口</div><div class="capture-time">08:12:33</div></div><span class="capture-match high">98.6%</span></div>
+        <div class="capture-item" onclick="showToast('已定位到主干道')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-R03 主干道中段</div><div class="capture-time">08:18:07</div></div><span class="capture-match high">97.2%</span></div>
+        <div class="capture-item" onclick="showToast('已定位到图书馆')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-L02 图书馆广场</div><div class="capture-time">08:25:41</div></div><span class="capture-match high">96.8%</span></div>
+        <div class="capture-item" onclick="showToast('已定位到A1教学楼')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-A101 A1教学楼</div><div class="capture-time">08:34:19</div></div><span class="capture-match high">95.4%</span></div>
+        <div class="capture-item" onclick="showToast('已定位到食堂')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-F01 食堂入口</div><div class="capture-time">09:15:52</div></div><span class="capture-match high">94.1%</span></div>
+        <div class="capture-item" onclick="showToast('已定位到实验楼')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-E05 实验楼前</div><div class="capture-time">09:42:16</div></div><span class="capture-match high">93.5%</span></div>
+        <div class="capture-item" onclick="showToast('已定位到运动场')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-SP02 运动场西侧</div><div class="capture-time">10:08:44</div></div><span class="capture-match medium">89.7%</span></div>
+        <div class="capture-item" onclick="showToast('已定位到宿舍区')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-B01 宿舍区B</div><div class="capture-time">10:35:28</div></div><span class="capture-match medium">87.3%</span></div>
+      </div>
+      </div><!-- /personDetail -->
+
+      <!-- Vehicle mode detail (hidden by default) -->
+      <div id="vehicleDetail" style="display:none">
+      <div class="section-title"><div class="section-title-dot" style="background:var(--cyan)"></div>车辆抓拍详情</div>
+
+      <div class="detail-capture">
+        <div class="detail-face-box" style="top:22%;left:20%;width:60%;height:40%;border-color:rgba(0,180,255,0.5)">
+          <div class="detail-face-label" style="background:rgba(0,180,255,0.25);border-color:rgba(0,180,255,0.5)">渝A·88K72  99.2%</div>
+        </div>
+        <div class="detail-capture-info">
+          <span class="detail-capture-cam">CAM-S02 南门车道</span>
+          <span class="detail-capture-time">07:48:12</span>
+        </div>
+      </div>
+
+      <div class="identity-card">
+        <div class="identity-header">
+          <div class="identity-avatar"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 5 20 16 16 13"/></svg></div>
+          <div><div class="identity-name" style="font-family:monospace;letter-spacing:1px">渝A·88K72</div><div class="identity-dept">白色轿车 · 临时通行</div></div>
+          <div class="identity-match"><div class="identity-match-val" data-value="99.2%">99.2%</div><div class="identity-match-label">匹配置信度</div></div>
+        </div>
+        <div class="identity-rows">
+          <div class="identity-row"><span class="identity-row-label">车牌类型</span><span class="identity-row-value">小型汽车（蓝牌）</span></div>
+          <div class="identity-row"><span class="identity-row-label">车辆颜色</span><span class="identity-row-value">白色</span></div>
+          <div class="identity-row"><span class="identity-row-label">通行权限</span><span class="identity-row-value" style="color:var(--orange)">临时通行证（T-0412）</span></div>
+          <div class="identity-row"><span class="identity-row-label">布控状态</span><span class="identity-row-value" style="color:var(--green)">正常</span></div>
+        </div>
+      </div>
+
+      <div class="section-title"><div class="section-title-dot"></div>操作</div>
+      <div class="action-group">
+        <div class="action-btn primary" onclick="location.href='trajectory.html'">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16"/></svg>
+          <span class="action-btn-text">追溯完整轨迹</span>
+        </div>
+        <div class="action-btn" onclick="showToast('正在播放关联监控录像...')">
+          <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          <span class="action-btn-text">播放关联录像</span>
+        </div>
+        <div class="action-btn" onclick="showToast('已导出检索报告')">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="action-btn-text">导出检索报告</span>
+        </div>
+      </div>
+
+      <div class="section-title"><div class="section-title-dot" style="background:var(--orange)"></div>全部抓拍点位</div>
+      <div class="capture-list">
+        <div class="capture-item active" onclick="showToast('已定位到南门车道')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-S02 南门车道</div><div class="capture-time">07:48:12</div></div><span class="capture-match high">99.2%</span></div>
+        <div class="capture-item" onclick="showToast('已定位到主干道')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-R05 主干道中段</div><div class="capture-time">07:52:36</div></div><span class="capture-match high">98.7%</span></div>
+        <div class="capture-item" onclick="showToast('已定位到停车场')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-P01 停车场入口</div><div class="capture-time">08:05:19</div></div><span class="capture-match high">97.5%</span></div>
+        <div class="capture-item" onclick="showToast('已定位到实验楼')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-E03 实验楼环路</div><div class="capture-time">08:22:41</div></div><span class="capture-match high">96.8%</span></div>
+        <div class="capture-item" onclick="showToast('已定位到食堂')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-F03 食堂后侧</div><div class="capture-time">09:10:08</div></div><span class="capture-match medium">93.4%</span></div>
+        <div class="capture-item" onclick="showToast('已定位到北门')"><div class="capture-thumb"></div><div class="capture-info"><div class="capture-name">CAM-N02 北门出口</div><div class="capture-time">09:30:54</div></div><span class="capture-match medium">91.6%</span></div>
+      </div>
+      </div><!-- /vehicleDetail -->
+    </div>
+  </aside>
+</div>
+
+<div class="click-toast" id="clickToast"></div>
+<script>
+function updateClock(){const n=new Date(),h=String(n.getHours()).padStart(2,'0'),m=String(n.getMinutes()).padStart(2,'0'),s=String(n.getSeconds()).padStart(2,'0');document.getElementById('navTime').textContent=`${h}:${m}:${s}`;const d=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];document.querySelectorAll('.nav-date').forEach(el=>{el.textContent=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')} ${d[n.getDay()]}`});}
+setInterval(updateClock,1000);
+
+function setMode(btn,mode){
+  document.querySelectorAll('.search-mode-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  var isP=mode==='person';
+  document.getElementById('personSearch').style.display=isP?'':'none';
+  document.getElementById('vehicleSearch').style.display=isP?'none':'';
+  document.getElementById('personResults').style.display=isP?'':'none';
+  document.getElementById('vehicleResults').style.display=isP?'none':'';
+  document.getElementById('personDetail').style.display=isP?'':'none';
+  document.getElementById('vehicleDetail').style.display=isP?'none':'';
+  showToast(isP?'人员寻踪模式':'车辆寻踪模式');
+}
+
+function doSearch(){
+  showToast('检索完成：发现 23 条抓拍记录');
+}
+
+function selectResult(card,idx){
+  document.querySelectorAll('.result-card.selected').forEach(c=>c.classList.remove('selected'));
+  card.classList.add('selected');
+  showToast('已选中第 '+(idx+1)+' 条抓拍记录');
+}
+
+let toastTimer;
+function showToast(msg){const el=document.getElementById('clickToast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2000);}
+</script>
+</body>
+</html>

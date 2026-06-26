@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<meta name="canvas:aspect-ratio" content="16:9">
+<meta name="canvas:width" content="1920">
+<meta name="canvas:height" content="1080">
+<title>数据大屏 - 平安校园指挥系统</title>
+<style>
+:root {
+  --seed-bg: #08090a; --seed-fg: #f7f8f8; --seed-primary: #0071e3; --seed-accent: #2997ff; --seed-surface: #0f1011; --seed-radius: 10px;
+  --bg-deep: #08090a; --bg-panel: #0f1011; --bg-elevated: #191a1b; --bg-surface: #28282c;
+  --text-primary: #f7f8f8; --text-secondary: #d0d6e0; --text-muted: #8a8f98; --text-faint: #62666d;
+  --accent: #0071e3; --accent-bright: #2997ff; --green: #30d158; --red: #ff453a; --yellow: #ffd60a; --orange: #ff9f0a;
+  --border-subtle: rgba(255,255,255,0.05); --border-standard: rgba(255,255,255,0.08); --border-hover: rgba(255,255,255,0.12);
+  --surface-translucent: rgba(255,255,255,0.03); --surface-hover: rgba(255,255,255,0.06);
+  --text-on-accent: #ffffff;
+  --font-body: system-ui, 'Segoe UI', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-mono: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-deep); color:var(--text-primary); font-family:var(--font-body); font-size:14px; -webkit-font-smoothing:antialiased; }
+
+/* ===== LAYOUT ===== */
+.app { width:100vw; height:100vh; display:grid; grid-template-rows:56px auto 1fr 44px; gap:0; }
+
+/* ===== TOP TITLE ===== */
+.top-bar { display:flex; align-items:center; padding:0 24px; background:rgba(8,9,10,0.92); backdrop-filter:blur(20px); border-bottom:1px solid var(--border-subtle); z-index:20; }
+.brand { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.brand-icon { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:var(--accent); }
+.brand-icon svg { width:16px; height:16px; stroke:var(--text-on-accent); fill:none; stroke-width:1.8; }
+.brand-text { display:flex; flex-direction:column; }
+.brand-title { font-size:16px; font-weight:600; color:var(--text-primary); }
+.brand-sub { font-size:9px; color:var(--text-faint); letter-spacing:0.08em; text-transform:uppercase; }
+.top-nav-tabs { display:flex; gap:2px; margin:0 auto; }
+.top-nav-tab { padding:6px 14px; font-size:13px; font-weight:500; color:var(--text-muted); border-radius:6px; cursor:pointer; transition:all 0.2s; user-select:none; }
+.top-nav-tab:hover { color:var(--text-secondary); background:var(--surface-hover); }
+.top-nav-tab.active { color:var(--text-primary); background:rgba(255,255,255,0.08); }
+.top-info { display:flex; align-items:center; gap:16px; flex-shrink:0; }
+.top-weather { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-muted); }
+.top-weather svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.5; }
+.top-time { font-family:var(--font-mono); font-size:15px; color:var(--text-primary); }
+.top-date { font-size:11px; color:var(--text-faint); }
+.time-filter { display:flex; gap:2px; padding:2px; background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:6px; }
+.time-filter-btn { padding:4px 10px; font-size:11px; font-weight:500; color:var(--text-faint); border-radius:4px; cursor:pointer; transition:all 0.15s; border:none; background:transparent; font-family:var(--font-body); }
+.time-filter-btn:hover { color:var(--text-muted); }
+.time-filter-btn.active { background:var(--accent); color:var(--text-on-accent); }
+
+/* ===== KPI ROW ===== */
+.kpi-row { display:grid; grid-template-columns:repeat(7, 1fr); gap:8px; padding:10px 16px; }
+.kpi-card { background:var(--bg-panel); border:1px solid var(--border-subtle); border-radius:var(--seed-radius); padding:12px 14px; display:flex; flex-direction:column; gap:4px; position:relative; overflow:hidden; cursor:pointer; transition:all 0.2s; }
+.kpi-card:hover { border-color:var(--border-hover); background:var(--bg-elevated); }
+.kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; border-radius:var(--seed-radius) var(--seed-radius) 0 0; }
+.kpi-card.cyan::before { background:var(--accent-bright); }
+.kpi-card.green::before { background:var(--green); }
+.kpi-card.red::before { background:var(--red); }
+.kpi-card.yellow::before { background:var(--yellow); }
+.kpi-card.orange::before { background:var(--orange); }
+.kpi-header { display:flex; align-items:center; gap:6px; }
+.kpi-icon { width:24px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.kpi-icon svg { width:14px; height:14px; stroke-width:1.6; fill:none; }
+.kpi-icon.cyan { background:rgba(41,151,255,0.10); }
+.kpi-icon.cyan svg { stroke:var(--accent-bright); }
+.kpi-icon.green { background:rgba(48,209,88,0.10); }
+.kpi-icon.green svg { stroke:var(--green); }
+.kpi-icon.red { background:rgba(255,69,58,0.10); }
+.kpi-icon.red svg { stroke:var(--red); }
+.kpi-icon.yellow { background:rgba(255,214,10,0.10); }
+.kpi-icon.yellow svg { stroke:var(--yellow); }
+.kpi-icon.orange { background:rgba(255,159,10,0.10); }
+.kpi-icon.orange svg { stroke:var(--orange); }
+.kpi-label { font-size:11px; color:var(--text-muted); font-weight:500; }
+.kpi-value-row { display:flex; align-items:baseline; gap:6px; }
+.kpi-value { font-family:var(--font-mono); font-size:24px; font-weight:700; letter-spacing:-0.03em; }
+.kpi-value.cyan { color:var(--accent-bright); }
+.kpi-value.green { color:var(--green); }
+.kpi-value.red { color:var(--red); }
+.kpi-value.yellow { color:var(--yellow); }
+.kpi-value.orange { color:var(--orange); }
+.kpi-unit { font-size:11px; color:var(--text-faint); }
+.kpi-delta { font-family:var(--font-mono); font-size:10px; margin-left:auto; }
+.kpi-delta.up { color:var(--green); }
+.kpi-delta.down { color:var(--red); }
+.kpi-sub { font-size:10px; color:var(--text-faint); display:flex; gap:10px; }
+.kpi-sub span { display:flex; align-items:center; gap:3px; }
+
+/* ===== MAIN CONTENT GRID ===== */
+.main-grid { display:grid; grid-template-columns:1fr 1.2fr 1fr; gap:8px; padding:0 16px 8px; overflow:hidden; }
+
+/* Panel styles */
+.data-panel { background:var(--bg-panel); border:1px solid var(--border-subtle); border-radius:var(--seed-radius); display:flex; flex-direction:column; overflow:hidden; }
+.dp-header { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border-subtle); flex-shrink:0; }
+.dp-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.dp-dot.cyan { background:var(--accent-bright); }
+.dp-dot.green { background:var(--green); }
+.dp-dot.red { background:var(--red); }
+.dp-dot.yellow { background:var(--yellow); }
+.dp-dot.orange { background:var(--orange); }
+.dp-title { font-size:13px; font-weight:600; color:var(--text-primary); letter-spacing:-0.02em; }
+.dp-badge { margin-left:auto; font-size:10px; font-weight:500; padding:1px 7px; border-radius:980px; background:rgba(41,151,255,0.12); color:var(--accent-bright); }
+.dp-body { padding:10px 14px; flex:1; overflow:hidden; display:flex; flex-direction:column; }
+
+/* Left column */
+.left-col { display:flex; flex-direction:column; gap:8px; overflow:hidden; }
+
+/* Center column */
+.center-col { display:flex; flex-direction:column; gap:8px; overflow:hidden; }
+
+/* Right column */
+.right-col { display:flex; flex-direction:column; gap:8px; overflow:hidden; }
+
+/* ===== CHART CONTAINERS ===== */
+.chart-wrap { flex:1; position:relative; min-height:0; }
+.chart-wrap svg { width:100%; height:100%; }
+
+/* ===== DATA ROWS ===== */
+.data-row { display:flex; align-items:center; gap:8px; padding:5px 0; }
+.data-row-label { font-size:11px; color:var(--text-muted); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.data-row-bar-wrap { width:60px; height:4px; border-radius:2px; background:rgba(255,255,255,0.05); overflow:hidden; flex-shrink:0; }
+.data-row-bar { height:100%; border-radius:2px; }
+.data-row-val { font-family:var(--font-mono); font-size:12px; font-weight:600; flex-shrink:0; width:36px; text-align:right; }
+
+/* Ring chart */
+.ring-wrap { display:flex; align-items:center; gap:12px; }
+.ring-legend { display:flex; flex-direction:column; gap:4px; flex:1; }
+.ring-legend-item { display:flex; align-items:center; gap:6px; font-size:11px; }
+.ring-legend-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+.ring-legend-label { color:var(--text-muted); flex:1; }
+.ring-legend-val { font-family:var(--font-mono); color:var(--text-secondary); font-weight:500; }
+
+/* Alert list */
+.alert-list { flex:1; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.08) transparent; }
+.alert-list::-webkit-scrollbar { width:3px; }
+.alert-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:2px; }
+.alert-row { display:flex; align-items:flex-start; gap:6px; padding:5px 0; border-bottom:1px solid var(--border-subtle); }
+.alert-row:last-child { border-bottom:none; }
+.alert-dot { width:6px; height:6px; border-radius:50%; margin-top:5px; flex-shrink:0; }
+.alert-dot.critical { background:var(--red); box-shadow:0 0 4px rgba(255,69,58,0.4); }
+.alert-dot.warning { background:var(--yellow); }
+.alert-dot.info { background:var(--accent-bright); }
+.alert-text { flex:1; min-width:0; }
+.alert-title { font-size:11px; color:var(--text-secondary); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.alert-meta { font-size:10px; color:var(--text-faint); }
+.alert-time { font-family:var(--font-mono); font-size:10px; color:var(--text-faint); flex-shrink:0; }
+
+/* ===== BOTTOM TICKER ===== */
+.bottom-ticker { display:flex; align-items:center; padding:0 16px; gap:12px; background:rgba(8,9,10,0.92); backdrop-filter:blur(12px); border-top:1px solid var(--border-subtle); }
+.ticker-badge { display:flex; align-items:center; gap:5px; padding:3px 10px; background:rgba(255,69,58,0.12); border:1px solid rgba(255,69,58,0.20); border-radius:980px; font-size:11px; font-weight:600; color:var(--red); flex-shrink:0; }
+.ticker-dot { width:5px; height:5px; border-radius:50%; background:var(--red); animation:blink 1.5s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+.ticker-scroll { flex:1; overflow:hidden; position:relative; height:18px; }
+.ticker-track { display:flex; gap:48px; position:absolute; white-space:nowrap; animation:scroll 60s linear infinite; }
+@keyframes scroll { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
+.ticker-item { font-size:12px; color:var(--text-secondary); display:flex; align-items:center; gap:6px; }
+.ticker-item .t-type { font-weight:500; }
+.ticker-item .t-type.critical { color:var(--red); }
+.ticker-item .t-type.warning { color:var(--yellow); }
+.ticker-item .t-type.info { color:var(--accent-bright); }
+.ticker-item .t-time { font-family:var(--font-mono); color:var(--text-faint); font-size:11px; }
+.ticker-stats { display:flex; gap:14px; flex-shrink:0; }
+.ticker-stat { text-align:center; }
+.ticker-stat-val { font-family:var(--font-mono); font-size:13px; font-weight:600; }
+.ticker-stat-val.total { color:var(--yellow); }
+.ticker-stat-val.resolved { color:var(--green); }
+.ticker-stat-label { font-size:9px; color:var(--text-faint); }
+
+/* ===== TOAST ===== */
+.click-toast { position:fixed; bottom:56px; left:50%; transform:translateX(-50%) translateY(12px); background:rgba(41,151,255,0.92); color:var(--text-on-accent); font-size:13px; font-weight:500; padding:8px 22px; border-radius:980px; pointer-events:none; opacity:0; z-index:100; backdrop-filter:blur(12px); transition:opacity 0.25s, transform 0.25s; white-space:nowrap; }
+.click-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<main class="app" data-component="Data Cockpit Dashboard">
+
+  <!-- TOP BAR -->
+  <div class="top-bar" data-component="Top Bar">
+    <div class="brand">
+      <div class="brand-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+      <div class="brand-text"><div class="brand-title">平安校园指挥系统</div><div class="brand-sub">DATA COCKPIT · SAFE CAMPUS</div></div>
+    </div>
+    <div class="top-nav-tabs">
+      <div class="top-nav-tab" onclick="location.href='campus-map.html'">可视化地图</div>
+      <div class="top-nav-tab" onclick="location.href='video-wall.html'">视频监控</div>
+      <div class="top-nav-tab active">数据中心</div>
+      <div class="top-nav-tab" onclick="location.href='smart-search.html'">智能寻踪</div>
+      <div class="top-nav-tab" onclick="showToast('资源管理模块开发中')">资源管理</div>
+    </div>
+    <div class="top-info">
+      <div class="time-filter">
+        <button class="time-filter-btn active" onclick="setTimeFilter(this)">今日</button>
+        <button class="time-filter-btn" onclick="setTimeFilter(this)">本周</button>
+        <button class="time-filter-btn" onclick="setTimeFilter(this)">本月</button>
+        <button class="time-filter-btn" onclick="setTimeFilter(this)">本年</button>
+      </div>
+      <div class="top-weather"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><span>晴 28°C</span></div>
+      <div><div class="top-time" id="navTime">14:32:08</div><div class="top-date">2026-06-26 星期四</div></div>
+    </div>
+  </div>
+
+  <!-- KPI ROW — 7 dimensions -->
+  <div class="kpi-row" data-component="KPI Summary">
+    <!-- 1. 安防预警 -->
+    <div class="kpi-card cyan" onclick="showToast('安防预警详情')">
+      <div class="kpi-header"><div class="kpi-icon cyan"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><span class="kpi-label">安防预警</span></div>
+      <div class="kpi-value-row"><span class="kpi-value cyan" data-value="47">47</span><span class="kpi-unit">件</span><span class="kpi-delta down">↓12%</span></div>
+      <div class="kpi-sub"><span>待处理 <b style="color:var(--red)">5</b></span><span>已处置 <b style="color:var(--green)">42</b></span></div>
+    </div>
+    <!-- 2. 消防监测 -->
+    <div class="kpi-card red" onclick="showToast('消防监测详情')">
+      <div class="kpi-header"><div class="kpi-icon red"><svg viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></div><span class="kpi-label">消防监测</span></div>
+      <div class="kpi-value-row"><span class="kpi-value red" data-value="12">12</span><span class="kpi-unit">件</span><span class="kpi-delta up">↑3%</span></div>
+      <div class="kpi-sub"><span>烟感 <b style="color:var(--text-secondary)">8</b></span><span>水压 <b style="color:var(--text-secondary)">4</b></span></div>
+    </div>
+    <!-- 3. 人员通行 -->
+    <div class="kpi-card cyan" onclick="showToast('人员通行详情')">
+      <div class="kpi-header"><div class="kpi-icon cyan"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><span class="kpi-label">人员通行</span></div>
+      <div class="kpi-value-row"><span class="kpi-value cyan" data-value="8,642">8,642</span><span class="kpi-unit">人次</span><span class="kpi-delta up">↑8%</span></div>
+      <div class="kpi-sub"><span>教职工 <b style="color:var(--text-secondary)">2,180</b></span><span>学生 <b style="color:var(--text-secondary)">6,462</b></span></div>
+    </div>
+    <!-- 4. 车辆管控 -->
+    <div class="kpi-card yellow" onclick="showToast('车辆管控详情')">
+      <div class="kpi-header"><div class="kpi-icon yellow"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 5 20 16 16 13"/></svg></div><span class="kpi-label">车辆管控</span></div>
+      <div class="kpi-value-row"><span class="kpi-value yellow" data-value="1,247">1,247</span><span class="kpi-unit">辆次</span><span class="kpi-delta up">↑5%</span></div>
+      <div class="kpi-sub"><span>违章 <b style="color:var(--red)">3</b></span><span>黑名单 <b style="color:var(--orange)">1</b></span></div>
+    </div>
+    <!-- 5. 设备运维 -->
+    <div class="kpi-card green" onclick="showToast('设备运维详情')">
+      <div class="kpi-header"><div class="kpi-icon green"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><span class="kpi-label">设备运维</span></div>
+      <div class="kpi-value-row"><span class="kpi-value green" data-value="97.1%">97.1</span><span class="kpi-unit">%</span><span class="kpi-delta up">↑0.3%</span></div>
+      <div class="kpi-sub"><span>在线 <b style="color:var(--green)">2,658</b></span><span>离线 <b style="color:var(--text-faint)">79</b></span></div>
+    </div>
+    <!-- 6. 异常告警 -->
+    <div class="kpi-card orange" onclick="showToast('异常告警详情')">
+      <div class="kpi-header"><div class="kpi-icon orange"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><span class="kpi-label">异常告警</span></div>
+      <div class="kpi-value-row"><span class="kpi-value orange" data-value="28">28</span><span class="kpi-unit">件</span><span class="kpi-delta down">↓18%</span></div>
+      <div class="kpi-sub"><span>紧急 <b style="color:var(--red)">2</b></span><span>一般 <b style="color:var(--text-secondary)">26</b></span></div>
+    </div>
+    <!-- 7. 巡逻管控 -->
+    <div class="kpi-card cyan" onclick="showToast('巡逻管控详情')">
+      <div class="kpi-header"><div class="kpi-icon cyan"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><span class="kpi-label">巡逻管控</span></div>
+      <div class="kpi-value-row"><span class="kpi-value cyan" data-value="156">156</span><span class="kpi-unit">次</span><span class="kpi-delta up">↑15%</span></div>
+      <div class="kpi-sub"><span>在岗 <b style="color:var(--green)">28</b></span><span>漏巡 <b style="color:var(--red)">2</b></span></div>
+    </div>
+  </div>
+
+  <!-- MAIN 3-COLUMN GRID -->
+  <div class="main-grid">
+    <!-- LEFT COLUMN -->
+    <div class="left-col">
+      <!-- 安防预警趋势 -->
+      <div class="data-panel" style="flex:1">
+        <div class="dp-header"><div class="dp-dot cyan"></div><span class="dp-title">安防预警趋势</span><span class="dp-badge">近7日</span></div>
+        <div class="dp-body">
+          <div class="chart-wrap">
+            <svg viewBox="0 0 280 140" preserveAspectRatio="none">
+              <defs><linearGradient id="areaCyan" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(41,151,255,0.25)"/><stop offset="100%" style="stop-color:rgba(41,151,255,0)"/></linearGradient></defs>
+              <!-- Grid lines -->
+              <line x1="30" y1="20" x2="270" y2="20" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="50" x2="270" y2="50" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="80" x2="270" y2="80" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="110" x2="270" y2="110" stroke="rgba(255,255,255,0.04)"/>
+              <!-- Y labels -->
+              <text x="24" y="24" text-anchor="end" fill="var(--text-faint)" font-size="9" font-family="var(--font-mono)">60</text>
+              <text x="24" y="54" text-anchor="end" fill="var(--text-faint)" font-size="9" font-family="var(--font-mono)">40</text>
+              <text x="24" y="84" text-anchor="end" fill="var(--text-faint)" font-size="9" font-family="var(--font-mono)">20</text>
+              <text x="24" y="114" text-anchor="end" fill="var(--text-faint)" font-size="9" font-family="var(--font-mono)">0</text>
+              <!-- Area -->
+              <path d="M30,80 L65,65 L100,72 L135,50 L170,58 L205,40 L240,45 L270,35 L270,110 L30,110 Z" fill="url(#areaCyan)"/>
+              <polyline points="30,80 65,65 100,72 135,50 170,58 205,40 240,45 270,35" fill="none" stroke="var(--accent-bright)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- Dots -->
+              <circle cx="30" cy="80" r="3" fill="var(--accent-bright)"/><circle cx="65" cy="65" r="3" fill="var(--accent-bright)"/><circle cx="100" cy="72" r="3" fill="var(--accent-bright)"/><circle cx="135" cy="50" r="3" fill="var(--accent-bright)"/><circle cx="170" cy="58" r="3" fill="var(--accent-bright)"/><circle cx="205" cy="40" r="3" fill="var(--accent-bright)"/><circle cx="240" cy="45" r="3" fill="var(--accent-bright)"/><circle cx="270" cy="35" r="4" fill="var(--accent-bright)" stroke="var(--bg-panel)" stroke-width="2"/>
+              <!-- X labels -->
+              <text x="30" y="128" text-anchor="middle" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">06/20</text><text x="100" y="128" text-anchor="middle" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">06/22</text><text x="170" y="128" text-anchor="middle" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">06/24</text><text x="270" y="128" text-anchor="middle" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">06/26</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <!-- 消防监测分布 -->
+      <div class="data-panel" style="flex:0.8">
+        <div class="dp-header"><div class="dp-dot red"></div><span class="dp-title">消防告警分布</span></div>
+        <div class="dp-body" style="gap:4px">
+          <div class="data-row"><span class="data-row-label">烟雾探测</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:67%;background:var(--red)"></div></div><span class="data-row-val" style="color:var(--red)" data-value="8">8</span></div>
+          <div class="data-row"><span class="data-row-label">水压异常</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:33%;background:var(--orange)"></div></div><span class="data-row-val" style="color:var(--orange)" data-value="4">4</span></div>
+          <div class="data-row"><span class="data-row-label">温度超标</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:17%;background:var(--yellow)"></div></div><span class="data-row-val" style="color:var(--yellow)" data-value="2">2</span></div>
+          <div class="data-row"><span class="data-row-label">电气火灾</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:8%;background:var(--text-faint)"></div></div><span class="data-row-val" style="color:var(--text-muted)" data-value="1">1</span></div>
+          <div class="data-row"><span class="data-row-label">手动报警</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:8%;background:var(--text-faint)"></div></div><span class="data-row-val" style="color:var(--text-muted)" data-value="1">1</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER COLUMN -->
+    <div class="center-col">
+      <!-- 人员通行趋势 + 车辆管控 -->
+      <div class="data-panel" style="flex:1">
+        <div class="dp-header"><div class="dp-dot cyan"></div><span class="dp-title">人员通行趋势</span><span class="dp-badge" style="background:rgba(48,209,88,0.12);color:var(--green);">实时</span></div>
+        <div class="dp-body">
+          <div class="chart-wrap">
+            <svg viewBox="0 0 400 130" preserveAspectRatio="none">
+              <defs><linearGradient id="areaGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(48,209,88,0.20)"/><stop offset="100%" style="stop-color:rgba(48,209,88,0)"/></linearGradient>
+              <linearGradient id="areaBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(41,151,255,0.15)"/><stop offset="100%" style="stop-color:rgba(41,151,255,0)"/></linearGradient></defs>
+              <line x1="30" y1="15" x2="390" y2="15" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="45" x2="390" y2="45" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="75" x2="390" y2="75" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="105" x2="390" y2="105" stroke="rgba(255,255,255,0.04)"/>
+              <text x="24" y="19" text-anchor="end" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">8k</text>
+              <text x="24" y="49" text-anchor="end" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">6k</text>
+              <text x="24" y="79" text-anchor="end" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">4k</text>
+              <text x="24" y="109" text-anchor="end" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">2k</text>
+              <!-- Students area -->
+              <path d="M30,75 L80,60 L130,50 L180,45 L230,55 L280,40 L330,35 L390,30 L390,105 L30,105 Z" fill="url(#areaGreen)"/>
+              <polyline points="30,75 80,60 130,50 180,45 230,55 280,40 330,35 390,30" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/>
+              <!-- Staff area -->
+              <path d="M30,90 L80,85 L130,82 L180,80 L230,83 L280,78 L330,76 L390,74 L390,105 L30,105 Z" fill="url(#areaBlue)"/>
+              <polyline points="30,90 80,85 130,82 180,80 230,83 280,78 330,76 390,74" fill="none" stroke="var(--accent-bright)" stroke-width="1.5" stroke-linecap="round"/>
+              <!-- Legend -->
+              <circle cx="280" cy="122" r="3" fill="var(--green)"/><text x="288" y="125" fill="var(--text-muted)" font-size="9">学生</text>
+              <circle cx="330" cy="122" r="3" fill="var(--accent-bright)"/><text x="338" y="125" fill="var(--text-muted)" font-size="9">教职工</text>
+              <text x="30" y="122" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">06/20</text><text x="130" y="122" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">06/22</text><text x="230" y="122" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">06/24</text><text x="370" y="122" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">06/26</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <!-- 车辆 + 巡逻 -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="data-panel">
+          <div class="dp-header"><div class="dp-dot yellow"></div><span class="dp-title">车辆通行</span></div>
+          <div class="dp-body">
+            <div class="ring-wrap">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="8"/>
+                <circle cx="40" cy="40" r="30" fill="none" stroke="var(--yellow)" stroke-width="8" stroke-dasharray="145 189" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 40 40)"/>
+                <circle cx="40" cy="40" r="30" fill="none" stroke="var(--orange)" stroke-width="8" stroke-dasharray="30 189" stroke-dashoffset="-145" stroke-linecap="round" transform="rotate(-90 40 40)"/>
+                <text x="40" y="38" text-anchor="middle" fill="var(--text-primary)" font-size="14" font-weight="700" font-family="var(--font-mono)" data-value="1247">1247</text>
+                <text x="40" y="50" text-anchor="middle" fill="var(--text-faint)" font-size="8">总通行量</text>
+              </svg>
+              <div class="ring-legend">
+                <div class="ring-legend-item"><div class="ring-legend-dot" style="background:var(--yellow)"></div><span class="ring-legend-label">正常通行</span><span class="ring-legend-val" data-value="1180">1,180</span></div>
+                <div class="ring-legend-item"><div class="ring-legend-dot" style="background:var(--orange)"></div><span class="ring-legend-label">临时车辆</span><span class="ring-legend-val" data-value="64">64</span></div>
+                <div class="ring-legend-item"><div class="ring-legend-dot" style="background:var(--red)"></div><span class="ring-legend-label">违章记录</span><span class="ring-legend-val" data-value="3">3</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="data-panel">
+          <div class="dp-header"><div class="dp-dot cyan"></div><span class="dp-title">巡逻统计</span></div>
+          <div class="dp-body">
+            <div class="ring-wrap">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="8"/>
+                <circle cx="40" cy="40" r="30" fill="none" stroke="var(--green)" stroke-width="8" stroke-dasharray="160 189" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 40 40)"/>
+                <circle cx="40" cy="40" r="30" fill="none" stroke="var(--red)" stroke-width="8" stroke-dasharray="10 189" stroke-dashoffset="-160" stroke-linecap="round" transform="rotate(-90 40 40)"/>
+                <text x="40" y="38" text-anchor="middle" fill="var(--text-primary)" font-size="14" font-weight="700" font-family="var(--font-mono)" data-value="156">156</text>
+                <text x="40" y="50" text-anchor="middle" fill="var(--text-faint)" font-size="8">总巡逻次</text>
+              </svg>
+              <div class="ring-legend">
+                <div class="ring-legend-item"><div class="ring-legend-dot" style="background:var(--green)"></div><span class="ring-legend-label">正常完成</span><span class="ring-legend-val" data-value="154">154</span></div>
+                <div class="ring-legend-item"><div class="ring-legend-dot" style="background:var(--red)"></div><span class="ring-legend-label">漏巡点位</span><span class="ring-legend-val" data-value="2">2</span></div>
+                <div class="ring-legend-item"><div class="ring-legend-dot" style="background:var(--accent-bright)"></div><span class="ring-legend-label">在岗人数</span><span class="ring-legend-val" data-value="28">28</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="right-col">
+      <!-- 设备运维 -->
+      <div class="data-panel" style="flex:1">
+        <div class="dp-header"><div class="dp-dot green"></div><span class="dp-title">设备在线率</span><span class="dp-badge" style="background:rgba(48,209,88,0.12);color:var(--green);">97.1%</span></div>
+        <div class="dp-body">
+          <div class="chart-wrap">
+            <svg viewBox="0 0 280 120" preserveAspectRatio="none">
+              <!-- Bar chart -->
+              <text x="10" y="12" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">100%</text>
+              <text x="10" y="62" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">90%</text>
+              <text x="10" y="112" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">80%</text>
+              <line x1="35" y1="8" x2="270" y2="8" stroke="rgba(255,255,255,0.04)"/><line x1="35" y1="58" x2="270" y2="58" stroke="rgba(255,255,255,0.04)"/><line x1="35" y1="108" x2="270" y2="108" stroke="rgba(255,255,255,0.04)"/>
+              <!-- Bars -->
+              <rect x="45" y="22" width="24" height="86" rx="3" fill="var(--green)" opacity="0.7"/><text x="57" y="118" text-anchor="middle" fill="var(--text-faint)" font-size="7">摄像头</text><text x="57" y="18" text-anchor="middle" fill="var(--green)" font-size="8" font-family="var(--font-mono)" data-value="97.9%">97.9</text>
+              <rect x="85" y="24" width="24" height="84" rx="3" fill="var(--green)" opacity="0.7"/><text x="97" y="118" text-anchor="middle" fill="var(--text-faint)" font-size="7">门禁</text><text x="97" y="20" text-anchor="middle" fill="var(--green)" font-size="8" font-family="var(--font-mono)" data-value="97.0%">97.0</text>
+              <rect x="125" y="28" width="24" height="80" rx="3" fill="var(--green)" opacity="0.7"/><text x="137" y="118" text-anchor="middle" fill="var(--text-faint)" font-size="7">消防</text><text x="137" y="24" text-anchor="middle" fill="var(--green)" font-size="8" font-family="var(--font-mono)" data-value="96.2%">96.2</text>
+              <rect x="165" y="18" width="24" height="90" rx="3" fill="var(--green)" opacity="0.7"/><text x="177" y="118" text-anchor="middle" fill="var(--text-faint)" font-size="7">报警</text><text x="177" y="14" text-anchor="middle" fill="var(--green)" font-size="8" font-family="var(--font-mono)" data-value="98.3%">98.3</text>
+              <rect x="205" y="24" width="24" height="84" rx="3" fill="var(--green)" opacity="0.7"/><text x="217" y="118" text-anchor="middle" fill="var(--text-faint)" font-size="7">巡更</text><text x="217" y="20" text-anchor="middle" fill="var(--green)" font-size="8" font-family="var(--font-mono)" data-value="97.0%">97.0</text>
+              <rect x="245" y="32" width="24" height="76" rx="3" fill="var(--yellow)" opacity="0.7"/><text x="257" y="118" text-anchor="middle" fill="var(--text-faint)" font-size="7">车检</text><text x="257" y="28" text-anchor="middle" fill="var(--yellow)" font-size="8" font-family="var(--font-mono)" data-value="94.8%">94.8</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <!-- 实时告警 -->
+      <div class="data-panel" style="flex:0.8">
+        <div class="dp-header"><div class="dp-dot orange"></div><span class="dp-title">实时告警动态</span><span class="dp-badge" style="background:rgba(255,69,58,0.12);color:var(--red);">5 待处理</span></div>
+        <div class="dp-body" style="padding:6px 10px;">
+          <div class="alert-list">
+            <div class="alert-row"><div class="alert-dot critical"></div><div class="alert-text"><div class="alert-title">火灾报警 · B教学楼3F</div><div class="alert-meta">烟雾传感器 · SM-B3-302</div></div><span class="alert-time">14:28</span></div>
+            <div class="alert-row"><div class="alert-dot critical"></div><div class="alert-text"><div class="alert-title">区域越界 · 东侧围墙</div><div class="alert-meta">移动侦测 · CAM-E12</div></div><span class="alert-time">14:15</span></div>
+            <div class="alert-row"><div class="alert-dot warning"></div><div class="alert-text"><div class="alert-title">人员聚集 · 图书馆广场</div><div class="alert-meta">超阈值 · 当前86人</div></div><span class="alert-time">13:52</span></div>
+            <div class="alert-row"><div class="alert-dot warning"></div><div class="alert-text"><div class="alert-title">门禁异常 · 实验楼2F</div><div class="alert-meta">非授权开门 · DOOR-L203</div></div><span class="alert-time">13:41</span></div>
+            <div class="alert-row"><div class="alert-dot info"></div><div class="alert-text"><div class="alert-title">设备离线 · 西门岗亭</div><div class="alert-meta">巡更终端断连 · PAT-W04</div></div><span class="alert-time">13:28</span></div>
+            <div class="alert-row"><div class="alert-dot info"></div><div class="alert-text"><div class="alert-title">黑名单识别 · 南门入口</div><div class="alert-meta">人脸匹配 · FACE-S01</div></div><span class="alert-time">12:55</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM TICKER -->
+  <div class="bottom-ticker" data-component="Alert Ticker">
+    <div class="ticker-badge"><div class="ticker-dot"></div>实时告警</div>
+    <div class="ticker-scroll">
+      <div class="ticker-track">
+        <div class="ticker-item"><span class="t-type critical">火灾</span> B教学楼3F烟雾传感器触发 <span class="t-time">14:28</span></div>
+        <div class="ticker-item"><span class="t-type critical">越界</span> 东侧围墙移动侦测触发 <span class="t-time">14:15</span></div>
+        <div class="ticker-item"><span class="t-type warning">聚集</span> 图书馆广场超阈值86人 <span class="t-time">13:52</span></div>
+        <div class="ticker-item"><span class="t-type warning">门禁</span> 实验楼2F非授权开门 <span class="t-time">13:41</span></div>
+        <div class="ticker-item"><span class="t-type info">离线</span> 西门岗亭巡更终端断连 <span class="t-time">13:28</span></div>
+        <div class="ticker-item"><span class="t-type info">识别</span> 南门黑名单人脸匹配 <span class="t-time">12:55</span></div>
+        <div class="ticker-item"><span class="t-type critical">火灾</span> B教学楼3F烟雾传感器触发 <span class="t-time">14:28</span></div>
+        <div class="ticker-item"><span class="t-type critical">越界</span> 东侧围墙移动侦测触发 <span class="t-time">14:15</span></div>
+        <div class="ticker-item"><span class="t-type warning">聚集</span> 图书馆广场超阈值86人 <span class="t-time">13:52</span></div>
+        <div class="ticker-item"><span class="t-type warning">门禁</span> 实验楼2F非授权开门 <span class="t-time">13:41</span></div>
+        <div class="ticker-item"><span class="t-type info">离线</span> 西门岗亭巡更终端断连 <span class="t-time">13:28</span></div>
+        <div class="ticker-item"><span class="t-type info">识别</span> 南门黑名单人脸匹配 <span class="t-time">12:55</span></div>
+      </div>
+    </div>
+    <div class="ticker-stats">
+      <div class="ticker-stat"><div class="ticker-stat-val total" data-value="67">67</div><div class="ticker-stat-label">今日告警</div></div>
+      <div class="ticker-stat"><div class="ticker-stat-val resolved" data-value="62">62</div><div class="ticker-stat-label">已处置</div></div>
+    </div>
+  </div>
+</main>
+
+<div class="click-toast" id="clickToast"></div>
+<script>
+function updateClock(){const n=new Date(),h=String(n.getHours()).padStart(2,'0'),m=String(n.getMinutes()).padStart(2,'0'),s=String(n.getSeconds()).padStart(2,'0');document.getElementById('navTime').textContent=`${h}:${m}:${s}`;const d=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];document.querySelectorAll('.top-date').forEach(el=>{el.textContent=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')} ${d[n.getDay()]}`});}
+setInterval(updateClock,1000);
+function setTimeFilter(btn){document.querySelectorAll('.time-filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');showToast('已切换至'+btn.textContent+'视图');}
+let toastTimer;function showToast(msg){const el=document.getElementById('clickToast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2000);}
+</script>
+</body>
+</html>

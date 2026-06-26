@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<meta name="canvas:aspect-ratio" content="16:9">
+<meta name="canvas:width" content="1920">
+<meta name="canvas:height" content="1080">
+<title>可视化地图 - 平安校园指挥系统</title>
+<style>
+:root {
+  --seed-bg: #08090a;
+  --seed-fg: #f7f8f8;
+  --seed-primary: #0071e3;
+  --seed-accent: #2997ff;
+  --seed-surface: #0f1011;
+  --seed-radius: 10px;
+  --bg-deep: #08090a;
+  --bg-panel: #0f1011;
+  --bg-elevated: #191a1b;
+  --bg-surface: #28282c;
+  --text-primary: #f7f8f8;
+  --text-secondary: #d0d6e0;
+  --text-muted: #8a8f98;
+  --text-faint: #62666d;
+  --accent: #0071e3;
+  --accent-bright: #2997ff;
+  --accent-hover: #0077ed;
+  --green: #30d158;
+  --red: #ff453a;
+  --yellow: #ffd60a;
+  --orange: #ff9f0a;
+  --svg-cyan: #2997ff;
+  --svg-green: #30d158;
+  --svg-red: #ff453a;
+  --svg-faint: #62666d;
+  --border-subtle: rgba(255,255,255,0.05);
+  --border-standard: rgba(255,255,255,0.08);
+  --border-hover: rgba(255,255,255,0.12);
+  --surface-translucent: rgba(255,255,255,0.03);
+  --surface-hover: rgba(255,255,255,0.06);
+  --font-display: system-ui, 'Segoe UI', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-body: system-ui, 'Segoe UI', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-mono: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  width:100vw; height:100vh; overflow:hidden;
+  background: var(--bg-deep); color: var(--text-primary);
+  font-family: var(--font-body); font-size:14px; font-weight:400;
+  line-height:1.5; letter-spacing:-0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== LAYOUT ===== */
+.campus-map {
+  position:relative; width:100vw; height:100vh; overflow:hidden;
+}
+
+/* ===== TOP NAV ===== */
+.top-nav {
+  position:absolute; top:0; left:0; right:0; z-index:20;
+  height:52px; display:flex; align-items:center; padding:0 20px;
+  background: rgba(8,9,10,0.85); backdrop-filter:blur(20px) saturate(1.6);
+  border-bottom:1px solid var(--border-subtle);
+}
+.nav-brand { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.nav-brand-icon {
+  width:30px; height:30px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  background: var(--accent);
+}
+.nav-brand-icon svg { width:16px; height:16px; stroke:#fff; fill:none; stroke-width:1.8; }
+.nav-title { font-size:16px; font-weight:600; letter-spacing:-0.02em; color:var(--text-primary); }
+.nav-subtitle { font-size:9px; font-weight:400; color:var(--text-faint); letter-spacing:0.08em; text-transform:uppercase; margin-top:-1px; }
+.nav-tabs { display:flex; gap:2px; margin:0 auto; }
+.nav-tab {
+  padding:6px 14px; font-size:13px; font-weight:500; color:var(--text-muted);
+  border-radius:6px; cursor:pointer; transition:all 0.2s; user-select:none;
+}
+.nav-tab:hover { color:var(--text-secondary); background:var(--surface-hover); }
+.nav-tab.active { color:var(--text-primary); background:rgba(255,255,255,0.08); }
+.nav-info { display:flex; align-items:center; gap:16px; flex-shrink:0; }
+.nav-weather { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-muted); }
+.nav-weather svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.5; }
+.nav-time { font-family:var(--font-mono); font-size:15px; font-weight:400; color:var(--text-primary); letter-spacing:-0.02em; }
+.nav-date { font-size:11px; color:var(--text-faint); }
+
+/* ===== THREE.JS MAP ===== */
+.map-container { position:absolute; inset:0; z-index:1; }
+#three-canvas { width:100%; height:100%; display:block; }
+
+/* ===== FLOATING PANELS ===== */
+.panel {
+  position:absolute; z-index:10;
+  background: rgba(15,16,17,0.88); backdrop-filter:blur(16px) saturate(1.4);
+  border:1px solid var(--border-standard); border-radius:var(--seed-radius);
+  overflow:hidden;
+}
+.panel-header {
+  display:flex; align-items:center; gap:8px;
+  padding:10px 14px; border-bottom:1px solid var(--border-subtle);
+}
+.panel-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+.panel-dot.green { background:var(--green); }
+.panel-dot.red { background:var(--red); }
+.panel-dot.yellow { background:var(--yellow); }
+.panel-title { font-size:13px; font-weight:600; color:var(--text-primary); letter-spacing:-0.02em; }
+.panel-badge {
+  margin-left:auto; font-size:10px; font-weight:500; padding:1px 7px;
+  border-radius:980px; background:rgba(41,151,255,0.12); color:var(--accent-bright);
+}
+.panel-body { padding:10px 14px; }
+
+/* LEFT PANELS — flex column, auto height */
+.panels-left {
+  position:absolute; top:64px; left:24px; bottom:58px;
+  width:310px; z-index:10;
+  display:flex; flex-direction:column; gap:8px;
+  overflow-y:auto; overflow-x:hidden;
+  scrollbar-width:none;
+}
+.panels-left::-webkit-scrollbar { display:none; }
+.panels-left .panel { position:relative; flex-shrink:0; width:100%; }
+
+/* RIGHT PANELS — flex column, auto height */
+.panels-right {
+  position:absolute; top:64px; right:24px; bottom:58px;
+  width:310px; z-index:10;
+  display:flex; flex-direction:column; gap:8px;
+  overflow-y:auto; overflow-x:hidden;
+  scrollbar-width:none;
+}
+.panels-right::-webkit-scrollbar { display:none; }
+.panels-right .panel { position:relative; flex-shrink:0; width:100%; }
+
+/* ===== DEVICE STATUS ROWS ===== */
+.device-row {
+  display:flex; align-items:center; gap:8px;
+  padding:7px 8px; border-radius:6px; transition:background 0.15s; cursor:pointer;
+}
+.device-row:hover { background:var(--surface-hover); }
+.device-row + .device-row { margin-top:2px; }
+.device-icon {
+  width:28px; height:28px; border-radius:6px;
+  background:rgba(41,151,255,0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.device-icon svg { width:14px; height:14px; stroke:var(--accent-bright); fill:none; stroke-width:1.6; }
+.device-info { flex:1; min-width:0; }
+.device-name { font-size:12px; color:var(--text-secondary); font-weight:500; }
+.device-meta { font-size:10px; color:var(--text-faint); font-family:var(--font-mono); margin-top:1px; }
+.device-rate { text-align:right; flex-shrink:0; }
+.device-rate-val { font-family:var(--font-mono); font-size:14px; font-weight:600; color:var(--green); letter-spacing:-0.02em; }
+.device-rate-label { font-size:9px; color:var(--text-faint); }
+.device-bar { height:3px; border-radius:2px; background:rgba(255,255,255,0.05); margin-top:4px; overflow:hidden; }
+.device-bar-fill { height:100%; border-radius:2px; background:var(--green); }
+
+/* ===== ALERT LIST ===== */
+.alert-list { max-height:190px; overflow-y:auto; }
+.alert-list::-webkit-scrollbar { width:3px; }
+.alert-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
+.alert-item {
+  display:flex; align-items:flex-start; gap:8px;
+  padding:8px; border-radius:6px; cursor:pointer; transition:background 0.15s;
+}
+.alert-item:hover { background:var(--surface-hover); }
+.alert-item + .alert-item { margin-top:2px; }
+.alert-type-dot { width:8px; height:8px; border-radius:50%; margin-top:4px; flex-shrink:0; }
+.alert-type-dot.critical { background:var(--red); box-shadow:0 0 6px rgba(255,69,58,0.5); animation:alertPulse 2s ease-in-out infinite; }
+.alert-type-dot.warning { background:var(--yellow); }
+.alert-type-dot.info { background:var(--accent-bright); }
+@keyframes alertPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+.alert-content { flex:1; min-width:0; }
+.alert-title-row { font-size:12px; font-weight:500; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.alert-detail-row { font-size:10px; color:var(--text-faint); margin-top:2px; }
+.alert-time-tag { font-family:var(--font-mono); font-size:10px; color:var(--text-faint); flex-shrink:0; margin-top:2px; }
+
+/* ===== KEY AREAS ===== */
+.area-row {
+  display:flex; align-items:center; gap:8px; padding:8px;
+  border-radius:6px; cursor:pointer; transition:background 0.15s;
+}
+.area-row:hover { background:var(--surface-hover); }
+.area-row + .area-row { margin-top:2px; }
+.area-indicator {
+  width:32px; height:32px; border-radius:6px; display:flex;
+  align-items:center; justify-content:center; flex-shrink:0;
+}
+.area-indicator.security { background:rgba(41,151,255,0.10); border:1px solid rgba(41,151,255,0.20); }
+.area-indicator.security svg { stroke:var(--accent-bright); }
+.area-indicator.fire { background:rgba(255,69,58,0.10); border:1px solid rgba(255,69,58,0.20); }
+.area-indicator.fire svg { stroke:var(--red); }
+.area-indicator.traffic { background:rgba(48,209,88,0.10); border:1px solid rgba(48,209,88,0.20); }
+.area-indicator.traffic svg { stroke:var(--green); }
+.area-indicator svg { width:16px; height:16px; fill:none; stroke-width:1.6; }
+.area-info { flex:1; }
+.area-name { font-size:12px; font-weight:500; color:var(--text-secondary); }
+.area-status { font-size:10px; color:var(--text-faint); margin-top:1px; }
+.area-count { font-family:var(--font-mono); font-size:14px; font-weight:600; flex-shrink:0; }
+.area-count.blue { color:var(--accent-bright); }
+.area-count.red { color:var(--red); }
+.area-count.green { color:var(--green); }
+
+/* ===== PERSONNEL STATUS ===== */
+.personnel-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.personnel-card {
+  padding:10px; border-radius:8px; background:var(--surface-translucent);
+  border:1px solid var(--border-subtle); text-align:center; cursor:pointer;
+  transition:all 0.15s;
+}
+.personnel-card:hover { background:var(--surface-hover); border-color:var(--border-hover); }
+.personnel-num { font-family:var(--font-mono); font-size:22px; font-weight:600; color:var(--accent-bright); letter-spacing:-0.03em; }
+.personnel-label { font-size:10px; color:var(--text-muted); margin-top:2px; }
+.personnel-delta { font-family:var(--font-mono); font-size:10px; margin-top:3px; }
+.personnel-delta.up { color:var(--green); }
+.personnel-delta.down { color:var(--red); }
+
+/* ===== VEHICLE TRAFFIC ===== */
+.vehicle-stats { display:flex; gap:12px; margin-bottom:10px; }
+.vehicle-stat { flex:1; text-align:center; }
+.vehicle-num { font-family:var(--font-mono); font-size:20px; font-weight:600; color:var(--text-primary); letter-spacing:-0.02em; }
+.vehicle-label { font-size:10px; color:var(--text-muted); margin-top:2px; }
+.vehicle-chart-wrap { margin-top:4px; }
+.vehicle-chart-wrap svg { width:100%; display:block; }
+
+/* ===== CAMERA OVERVIEW ===== */
+.cam-stats { display:flex; justify-content:space-around; margin-bottom:10px; }
+.cam-stat { text-align:center; }
+.cam-num { font-family:var(--font-mono); font-size:20px; font-weight:600; letter-spacing:-0.02em; }
+.cam-num.total { color:var(--text-primary); }
+.cam-num.online { color:var(--green); }
+.cam-num.offline { color:var(--text-faint); }
+.cam-num.alerting { color:var(--red); }
+.cam-label { font-size:10px; color:var(--text-muted); margin-top:2px; }
+.cam-ring-wrap { display:flex; align-items:center; gap:12px; }
+.cam-ring-wrap svg { flex-shrink:0; }
+.cam-legend { display:flex; flex-direction:column; gap:5px; }
+.cam-legend-item { display:flex; align-items:center; gap:6px; font-size:11px; }
+.cam-legend-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+.cam-legend-label { color:var(--text-muted); width:48px; }
+.cam-legend-val { font-family:var(--font-mono); color:var(--text-secondary); }
+
+/* ===== LAYER CONTROL ===== */
+.layer-control {
+  position:absolute; top:64px; left:350px; z-index:15;
+  background:rgba(15,16,17,0.92); backdrop-filter:blur(16px) saturate(1.4);
+  border:1px solid var(--border-standard); border-radius:var(--seed-radius);
+  width:200px; overflow:hidden; transition:all 0.3s ease;
+}
+.layer-control.collapsed { width:40px; height:40px; border-radius:10px; overflow:hidden; }
+.layer-toggle {
+  width:40px; height:40px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:var(--text-muted); transition:color 0.2s;
+}
+.layer-toggle:hover { color:var(--text-primary); }
+.layer-toggle svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.6; }
+.layer-panel { padding:0 12px 12px; }
+.layer-panel-title { font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.04em; text-transform:uppercase; margin-bottom:8px; }
+.layer-item {
+  display:flex; align-items:center; gap:8px; padding:5px 0; cursor:pointer; user-select:none;
+}
+.layer-checkbox {
+  width:16px; height:16px; border-radius:4px; border:1.5px solid var(--text-faint);
+  display:flex; align-items:center; justify-content:center; transition:all 0.15s; flex-shrink:0;
+}
+.layer-checkbox.checked { background:var(--accent); border-color:var(--accent); }
+.layer-checkbox.checked svg { opacity:1; }
+.layer-checkbox svg { width:10px; height:10px; stroke:#fff; fill:none; stroke-width:2.5; opacity:0; }
+.layer-label { font-size:12px; color:var(--text-secondary); font-weight:500; }
+.layer-count { margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--text-faint); }
+
+/* ===== BOTTOM ALERT TICKER ===== */
+.alert-ticker {
+  position:absolute; bottom:0; left:0; right:0; z-index:15;
+  height:44px; display:flex; align-items:center;
+  background:rgba(8,9,10,0.90); backdrop-filter:blur(12px);
+  border-top:1px solid var(--border-subtle); padding:0 16px; gap:12px;
+}
+.ticker-badge {
+  display:flex; align-items:center; gap:6px; padding:4px 10px;
+  background:rgba(255,69,58,0.12); border:1px solid rgba(255,69,58,0.20);
+  border-radius:980px; font-size:11px; font-weight:600; color:var(--red); flex-shrink:0;
+}
+.ticker-dot { width:6px; height:6px; border-radius:50%; background:var(--red); animation:alertPulse 1.5s ease-in-out infinite; }
+.ticker-scroll { flex:1; overflow:hidden; position:relative; height:20px; }
+.ticker-track {
+  display:flex; gap:60px; position:absolute; white-space:nowrap;
+  animation:tickerScroll 45s linear infinite;
+}
+@keyframes tickerScroll { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
+.ticker-item { font-size:12px; color:var(--text-secondary); display:flex; align-items:center; gap:8px; }
+.ticker-item .ticker-time { font-family:var(--font-mono); color:var(--text-faint); font-size:11px; }
+.ticker-item .ticker-type { font-weight:500; }
+.ticker-item .ticker-type.critical { color:var(--red); }
+.ticker-item .ticker-type.warning { color:var(--yellow); }
+.ticker-item .ticker-type.info { color:var(--accent-bright); }
+.ticker-stats { display:flex; gap:16px; flex-shrink:0; }
+.ticker-stat { text-align:center; }
+.ticker-stat-num { font-family:var(--font-mono); font-size:14px; font-weight:600; }
+.ticker-stat-num.total { color:var(--yellow); }
+.ticker-stat-num.resolved { color:var(--green); }
+.ticker-stat-label { font-size:9px; color:var(--text-faint); }
+
+/* ===== MAP TOOLTIPS ===== */
+.map-tooltip {
+  position:absolute; z-index:25; pointer-events:none;
+  background:rgba(15,16,17,0.95); backdrop-filter:blur(12px);
+  border:1px solid var(--border-standard); border-radius:8px;
+  padding:10px 14px; min-width:180px; opacity:0; transition:opacity 0.2s;
+}
+.map-tooltip.visible { opacity:1; }
+.tooltip-title { font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:4px; }
+.tooltip-row { font-size:11px; color:var(--text-muted); display:flex; justify-content:space-between; gap:12px; }
+.tooltip-row + .tooltip-row { margin-top:3px; }
+.tooltip-val { font-family:var(--font-mono); color:var(--text-secondary); }
+
+/* ===== UTILITY ===== */
+.text-green { color:var(--green); }
+.text-red { color:var(--red); }
+.text-yellow { color:var(--yellow); }
+.text-blue { color:var(--accent-bright); }
+
+/* ===== RIPPLE & INTERACTION ===== */
+.ripple-host { position:relative; overflow:hidden; }
+.ripple {
+  position:absolute; border-radius:50%; background:rgba(255,255,255,0.12);
+  transform:scale(0); animation:rippleAnim 0.5s ease-out forwards; pointer-events:none; z-index:50;
+}
+@keyframes rippleAnim { to { transform:scale(3); opacity:0; } }
+.click-toast {
+  position:fixed; bottom:60px; left:50%; transform:translateX(-50%) translateY(12px);
+  background:rgba(41,151,255,0.92); color:#fff; font-size:13px; font-weight:500;
+  padding:8px 22px; border-radius:980px; pointer-events:none; opacity:0; z-index:100;
+  backdrop-filter:blur(12px); transition:opacity 0.25s, transform 0.25s; white-space:nowrap;
+}
+.click-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="campus-map" data-component="Campus Map Dashboard">
+
+  <!-- TOP NAV -->
+  <nav class="top-nav" data-component="Top Navigation">
+    <div class="nav-brand">
+      <div class="nav-brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <div>
+        <div class="nav-title">平安校园指挥系统</div>
+        <div class="nav-subtitle">VISUAL MAP · SAFE CAMPUS</div>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <div class="nav-tab active">可视化地图</div>
+      <div class="nav-tab" onclick="location.href='video-wall.html'">视频监控</div>
+      <div class="nav-tab" onclick="location.href='data-cockpit.html'">数据中心</div>
+      <div class="nav-tab" onclick="location.href='smart-search.html'">智能寻踪</div>
+      <div class="nav-tab" onclick="showToast('资源管理模块开发中')">资源管理</div>
+    </div>
+    <div class="nav-info">
+      <div class="nav-weather">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <span>晴 28°C</span>
+      </div>
+      <div>
+        <div class="nav-time">14:32:08</div>
+        <div class="nav-date">2026-06-26 星期四</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- THREE.JS MAP CANVAS -->
+  <main class="map-container" data-component="Campus Map Main">
+    <canvas id="three-canvas"></canvas>
+  </main>
+
+  <!-- LAYER CONTROL -->
+  <div class="layer-control" id="layerControl" data-component="Layer Control">
+    <div class="layer-toggle" id="layerToggle">
+      <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+    </div>
+    <div class="layer-panel">
+      <div class="layer-panel-title">图层控制</div>
+      <div class="layer-item" data-layer="cameras">
+        <div class="layer-checkbox checked"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="layer-label">楼宇摄像头</span>
+        <span class="layer-count">842</span>
+      </div>
+      <div class="layer-item" data-layer="roads">
+        <div class="layer-checkbox checked"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="layer-label">道路监控</span>
+        <span class="layer-count">216</span>
+      </div>
+      <div class="layer-item" data-layer="face">
+        <div class="layer-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="layer-label">人脸抓拍</span>
+        <span class="layer-count">128</span>
+      </div>
+      <div class="layer-item" data-layer="fire">
+        <div class="layer-checkbox checked"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="layer-label">消防设施</span>
+        <span class="layer-count">1,208</span>
+      </div>
+      <div class="layer-item" data-layer="patrol">
+        <div class="layer-checkbox checked"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="layer-label">巡逻人员</span>
+        <span class="layer-count">28</span>
+      </div>
+      <div class="layer-item" data-layer="keyarea">
+        <div class="layer-checkbox checked"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="layer-label">重点区域</span>
+        <span class="layer-count">6</span>
+      </div>
+      <div class="layer-item" data-layer="vehicles">
+        <div class="layer-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="layer-label">车辆定位</span>
+        <span class="layer-count">47</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEFT PANELS -->
+  <div class="panels-left">
+  <div class="panel" data-component="Device Status">
+    <div class="panel-header">
+      <div class="panel-dot green"></div>
+      <span class="panel-title">安防设备状态</span>
+      <span class="panel-badge">97.1%</span>
+    </div>
+    <div class="panel-body">
+      <div class="device-row">
+        <div class="device-icon"><svg viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>
+        <div class="device-info">
+          <div class="device-name">摄像头</div>
+          <div class="device-meta">在线 842 / 离线 18</div>
+          <div class="device-bar"><div class="device-bar-fill" style="width:97.9%"></div></div>
+        </div>
+        <div class="device-rate"><div class="device-rate-val">97.9%</div><div class="device-rate-label">在线率</div></div>
+      </div>
+      <div class="device-row">
+        <div class="device-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <div class="device-info">
+          <div class="device-name">门禁系统</div>
+          <div class="device-meta">在线 326 / 离线 10</div>
+          <div class="device-bar"><div class="device-bar-fill" style="width:97%"></div></div>
+        </div>
+        <div class="device-rate"><div class="device-rate-val">97.0%</div><div class="device-rate-label">在线率</div></div>
+      </div>
+      <div class="device-row">
+        <div class="device-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7v6.5c0 5.25 4.25 10.15 10 11.5 5.75-1.35 10-6.25 10-11.5V7L12 2z"/></svg></div>
+        <div class="device-info">
+          <div class="device-name">消防设备</div>
+          <div class="device-meta">在线 1208 / 离线 47</div>
+          <div class="device-bar"><div class="device-bar-fill" style="width:96.2%"></div></div>
+        </div>
+        <div class="device-rate"><div class="device-rate-val">96.2%</div><div class="device-rate-label">在线率</div></div>
+      </div>
+      <div class="device-row">
+        <div class="device-icon"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <div class="device-info">
+          <div class="device-name">报警设备</div>
+          <div class="device-meta">在线 456 / 离线 8</div>
+          <div class="device-bar"><div class="device-bar-fill" style="width:98.3%"></div></div>
+        </div>
+        <div class="device-rate"><div class="device-rate-val">98.3%</div><div class="device-rate-label">在线率</div></div>
+      </div>
+      <div class="device-row">
+        <div class="device-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <div class="device-info">
+          <div class="device-name">巡更终端</div>
+          <div class="device-meta">在线 128 / 离线 4</div>
+          <div class="device-bar"><div class="device-bar-fill" style="width:97%"></div></div>
+        </div>
+        <div class="device-rate"><div class="device-rate-val">97.0%</div><div class="device-rate-label">在线率</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEFT PANEL 2: Real-time Alerts -->
+  <div class="panel" data-component="Real-time Alerts">
+    <div class="panel-header">
+      <div class="panel-dot red"></div>
+      <span class="panel-title">实时预警事件</span>
+      <span class="panel-badge" style="background:rgba(255,69,58,0.12);color:var(--red);">5 待处理</span>
+    </div>
+    <div class="panel-body">
+      <div class="alert-list">
+        <div class="alert-item">
+          <div class="alert-type-dot critical"></div>
+          <div class="alert-content">
+            <div class="alert-title-row">火灾报警 · B教学楼3F</div>
+            <div class="alert-detail-row">烟雾传感器触发 · SM-B3-302-07</div>
+          </div>
+          <span class="alert-time-tag">14:28</span>
+        </div>
+        <div class="alert-item">
+          <div class="alert-type-dot critical"></div>
+          <div class="alert-content">
+            <div class="alert-title-row">区域越界 · 东侧围墙</div>
+            <div class="alert-detail-row">移动侦测触发 · CAM-E12</div>
+          </div>
+          <span class="alert-time-tag">14:15</span>
+        </div>
+        <div class="alert-item">
+          <div class="alert-type-dot warning"></div>
+          <div class="alert-content">
+            <div class="alert-title-row">人员聚集 · 图书馆广场</div>
+            <div class="alert-detail-row">超阈值预警 · 当前86人</div>
+          </div>
+          <span class="alert-time-tag">13:52</span>
+        </div>
+        <div class="alert-item">
+          <div class="alert-type-dot warning"></div>
+          <div class="alert-content">
+            <div class="alert-title-row">门禁异常 · 实验楼2F</div>
+            <div class="alert-detail-row">非授权时段开门 · DOOR-L203</div>
+          </div>
+          <span class="alert-time-tag">13:41</span>
+        </div>
+        <div class="alert-item">
+          <div class="alert-type-dot info"></div>
+          <div class="alert-content">
+            <div class="alert-title-row">设备离线 · 西门岗亭</div>
+            <div class="alert-detail-row">巡更终端断连 · PAT-W04</div>
+          </div>
+          <span class="alert-time-tag">13:28</span>
+        </div>
+        <div class="alert-item">
+          <div class="alert-type-dot info"></div>
+          <div class="alert-content">
+            <div class="alert-title-row">黑名单识别 · 南门入口</div>
+            <div class="alert-detail-row">人脸匹配命中 · FACE-S01</div>
+          </div>
+          <span class="alert-time-tag">12:55</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEFT PANEL 3: Key Areas -->
+  <div class="panel" data-component="Key Areas">
+    <div class="panel-header">
+      <div class="panel-dot yellow"></div>
+      <span class="panel-title">重点区域监控</span>
+      <span class="panel-badge">6 区域</span>
+    </div>
+    <div class="panel-body">
+      <div class="area-row">
+        <div class="area-indicator security"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="area-info"><div class="area-name">安防值守区</div><div class="area-status">校门 · 围墙 · 岗亭</div></div>
+        <span class="area-count blue">12</span>
+      </div>
+      <div class="area-row">
+        <div class="area-indicator fire"><svg viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></div>
+        <div class="area-info"><div class="area-name">消防管控区</div><div class="area-status">实验楼 · 图书馆 · 宿舍</div></div>
+        <span class="area-count red">3</span>
+      </div>
+      <div class="area-row">
+        <div class="area-indicator traffic"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+        <div class="area-info"><div class="area-name">车辆管控区</div><div class="area-status">南门 · 北门 · 停车场</div></div>
+        <span class="area-count green">47</span>
+      </div>
+    </div>
+  </div>
+  </div><!-- /panels-left -->
+
+  <!-- RIGHT PANELS -->
+  <div class="panels-right">
+  <div class="panel" data-component="Personnel Status">
+    <div class="panel-header">
+      <div class="panel-dot"></div>
+      <span class="panel-title">在岗人员动态</span>
+      <span class="panel-badge">实时</span>
+    </div>
+    <div class="panel-body">
+      <div class="personnel-grid">
+        <div class="personnel-card">
+          <div class="personnel-num">28</div>
+          <div class="personnel-label">安保巡逻中</div>
+          <div class="personnel-delta up">+4 较昨日</div>
+        </div>
+        <div class="personnel-card">
+          <div class="personnel-num">12</div>
+          <div class="personnel-label">在岗值班</div>
+          <div class="personnel-delta">全员在岗</div>
+        </div>
+        <div class="personnel-card">
+          <div class="personnel-num">38,672</div>
+          <div class="personnel-label">在校学生</div>
+          <div class="personnel-delta up">+126</div>
+        </div>
+        <div class="personnel-card">
+          <div class="personnel-num">186</div>
+          <div class="personnel-label">今日访客</div>
+          <div class="personnel-delta down">待审批 12</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL 2: Vehicle Traffic -->
+  <div class="panel" data-component="Vehicle Traffic">
+    <div class="panel-header">
+      <div class="panel-dot green"></div>
+      <span class="panel-title">车辆通行数据</span>
+      <span class="panel-badge">今日</span>
+    </div>
+    <div class="panel-body">
+      <div class="vehicle-stats">
+        <div class="vehicle-stat">
+          <div class="vehicle-num">856</div>
+          <div class="vehicle-label">总通行</div>
+        </div>
+        <div class="vehicle-stat">
+          <div class="vehicle-num" style="color:var(--green)">512</div>
+          <div class="vehicle-label">驶入</div>
+        </div>
+        <div class="vehicle-stat">
+          <div class="vehicle-num" style="color:var(--orange)">344</div>
+          <div class="vehicle-label">驶出</div>
+        </div>
+      </div>
+      <div class="vehicle-chart-wrap">
+        <svg viewBox="0 0 280 60" role="img">
+          <!-- Hourly vehicle flow mini chart -->
+          <defs>
+            <linearGradient id="vAreaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--svg-cyan)" stop-opacity="0.15"/>
+              <stop offset="100%" stop-color="var(--svg-cyan)" stop-opacity="0.02"/>
+            </linearGradient>
+          </defs>
+          <!-- Grid -->
+          <line x1="0" y1="15" x2="280" y2="15" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+          <line x1="0" y1="30" x2="280" y2="30" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+          <line x1="0" y1="45" x2="280" y2="45" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+          <!-- Area -->
+          <polygon points="0,50 14,48 28,42 42,36 56,22 70,14 84,18 98,24 112,20 126,16 140,22 154,30 168,26 182,28 196,34 210,38 224,42 238,44 252,46 266,48 280,50 280,54 0,54"
+            fill="url(#vAreaGrad)" opacity="0.7"/>
+          <!-- Line -->
+          <polyline points="0,50 14,48 28,42 42,36 56,22 70,14 84,18 98,24 112,20 126,16 140,22 154,30 168,26 182,28 196,34 210,38 224,42 238,44 252,46 266,48 280,50"
+            fill="none" stroke="var(--svg-cyan)" stroke-width="1.5" stroke-linejoin="round"/>
+          <!-- Labels -->
+          <text x="0" y="58" fill="var(--svg-faint)" font-size="8" font-family="monospace">6:00</text>
+          <text x="70" y="58" fill="var(--svg-faint)" font-size="8" font-family="monospace">9:00</text>
+          <text x="140" y="58" fill="var(--svg-faint)" font-size="8" font-family="monospace">12:00</text>
+          <text x="210" y="58" fill="var(--svg-faint)" font-size="8" font-family="monospace">15:00</text>
+          <text x="262" y="58" fill="var(--svg-faint)" font-size="8" font-family="monospace">18:00</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL 3: Camera Overview -->
+  <div class="panel" data-component="Camera Overview">
+    <div class="panel-header">
+      <div class="panel-dot"></div>
+      <span class="panel-title">摄像机概览</span>
+      <span class="panel-badge">2,960</span>
+    </div>
+    <div class="panel-body">
+      <div class="cam-stats">
+        <div class="cam-stat"><div class="cam-num total">2,960</div><div class="cam-label">总数</div></div>
+        <div class="cam-stat"><div class="cam-num online">2,873</div><div class="cam-label">在线</div></div>
+        <div class="cam-stat"><div class="cam-num offline">87</div><div class="cam-label">离线</div></div>
+        <div class="cam-stat"><div class="cam-num alerting">12</div><div class="cam-label">告警</div></div>
+      </div>
+      <div class="cam-ring-wrap">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="28" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="10"/>
+          <!-- Online: 97.1% = 171 of 176 -->
+          <circle cx="40" cy="40" r="28" fill="none" stroke="var(--svg-green)" stroke-width="10"
+            stroke-dasharray="171 176" stroke-dashoffset="0"
+            transform="rotate(-90 40 40)" stroke-linecap="round" opacity="0.85"/>
+          <!-- Alerting: ~0.4% -->
+          <circle cx="40" cy="40" r="28" fill="none" stroke="var(--svg-red)" stroke-width="10"
+            stroke-dasharray="0.7 176" stroke-dashoffset="-171"
+            transform="rotate(-90 40 40)" stroke-linecap="round" opacity="0.8"/>
+          <text x="40" y="38" text-anchor="middle" fill="var(--text-primary)" font-size="13" font-family="var(--font-mono)" font-weight="600">97.1</text>
+          <text x="40" y="48" text-anchor="middle" fill="var(--text-faint)" font-size="8" font-family="system-ui,sans-serif">% 在线率</text>
+        </svg>
+        <div class="cam-legend">
+          <div class="cam-legend-item">
+            <div class="cam-legend-dot" style="background:var(--green)"></div>
+            <span class="cam-legend-label">在线</span>
+            <span class="cam-legend-val">2,873</span>
+          </div>
+          <div class="cam-legend-item">
+            <div class="cam-legend-dot" style="background:var(--text-faint)"></div>
+            <span class="cam-legend-label">离线</span>
+            <span class="cam-legend-val">87</span>
+          </div>
+          <div class="cam-legend-item">
+            <div class="cam-legend-dot" style="background:var(--red)"></div>
+            <span class="cam-legend-label">告警中</span>
+            <span class="cam-legend-val">12</span>
+          </div>
+          <div class="cam-legend-item">
+            <div class="cam-legend-dot" style="background:var(--accent-bright)"></div>
+            <span class="cam-legend-label">人脸抓拍</span>
+            <span class="cam-legend-val">128</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div><!-- /panels-right -->
+
+  <!-- BOTTOM ALERT TICKER -->
+  <div class="alert-ticker" data-component="Alert Ticker">
+    <div class="ticker-badge">
+      <div class="ticker-dot"></div>
+      <span>实时告警</span>
+    </div>
+    <div class="ticker-scroll">
+      <div class="ticker-track">
+        <div class="ticker-item"><span class="ticker-time">14:28</span><span class="ticker-type critical">火灾报警</span> B教学楼3F实验室302 烟雾传感器触发</div>
+        <div class="ticker-item"><span class="ticker-time">14:15</span><span class="ticker-type critical">区域越界</span> 东侧围墙 移动侦测触发 CAM-E12</div>
+        <div class="ticker-item"><span class="ticker-time">13:52</span><span class="ticker-type warning">人员聚集</span> 图书馆广场 超阈值预警 当前86人</div>
+        <div class="ticker-item"><span class="ticker-time">13:41</span><span class="ticker-type warning">门禁异常</span> 实验楼2F 非授权时段开门 DOOR-L203</div>
+        <div class="ticker-item"><span class="ticker-time">13:28</span><span class="ticker-type info">设备离线</span> 西门岗亭 巡更终端断连 PAT-W04</div>
+        <div class="ticker-item"><span class="ticker-time">12:55</span><span class="ticker-type info">黑名单识别</span> 南门入口 人脸匹配命中 FACE-S01</div>
+        <div class="ticker-item"><span class="ticker-time">14:28</span><span class="ticker-type critical">火灾报警</span> B教学楼3F实验室302 烟雾传感器触发</div>
+        <div class="ticker-item"><span class="ticker-time">14:15</span><span class="ticker-type critical">区域越界</span> 东侧围墙 移动侦测触发 CAM-E12</div>
+        <div class="ticker-item"><span class="ticker-time">13:52</span><span class="ticker-type warning">人员聚集</span> 图书馆广场 超阈值预警 当前86人</div>
+        <div class="ticker-item"><span class="ticker-time">13:41</span><span class="ticker-type warning">门禁异常</span> 实验楼2F 非授权时段开门 DOOR-L203</div>
+        <div class="ticker-item"><span class="ticker-time">13:28</span><span class="ticker-type info">设备离线</span> 西门岗亭 巡更终端断连 PAT-W04</div>
+        <div class="ticker-item"><span class="ticker-time">12:55</span><span class="ticker-type info">黑名单识别</span> 南门入口 人脸匹配命中 FACE-S01</div>
+      </div>
+    </div>
+    <div class="ticker-stats">
+      <div class="ticker-stat"><div class="ticker-stat-num total">47</div><div class="ticker-stat-label">今日告警</div></div>
+      <div class="ticker-stat"><div class="ticker-stat-num resolved">42</div><div class="ticker-stat-label">已处理</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="click-toast" id="clickToast"></div>
+
+<!-- THREE.JS 3D CAMPUS MAP -->
+<script src="https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  var canvas = document.getElementById('three-canvas');
+  var container = canvas.parentElement;
+  var W = container.clientWidth, H = container.clientHeight;
+  var renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x08090a, 1);
+
+  var scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x08090a, 0.006);
+
+  var camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 500);
+  camera.position.set(60, 80, 60);
+  camera.lookAt(0, 0, 0);
+
+  /* Lights */
+  scene.add(new THREE.AmbientLight(0x191a1b, 0.7));
+  var dirLight = new THREE.DirectionalLight(0x0071e3, 0.25);
+  dirLight.position.set(30, 50, 20);
+  scene.add(dirLight);
+  var ptLight = new THREE.PointLight(0x2997ff, 0.3, 120);
+  ptLight.position.set(0, 40, 0);
+  scene.add(ptLight);
+
+  /* Materials */
+  var groundMat = new THREE.MeshPhongMaterial({color:0x0f1011, emissive:0x08090a, transparent:true, opacity:0.9});
+  var bldMat = new THREE.MeshPhongMaterial({color:0x191a1b, emissive:0x141516, emissiveIntensity:0.15, transparent:true, opacity:0.85});
+  var bldAlt = new THREE.MeshPhongMaterial({color:0x1a1b1d, emissive:0x151618, emissiveIntensity:0.12, transparent:true, opacity:0.82});
+  var libMat = new THREE.MeshPhongMaterial({color:0x151520, emissive:0x0071e3, emissiveIntensity:0.08, transparent:true, opacity:0.85});
+  var edgeMat = new THREE.LineBasicMaterial({color:0x2997ff, transparent:true, opacity:0.25});
+  var edgeBlue = new THREE.LineBasicMaterial({color:0x0071e3, transparent:true, opacity:0.18});
+  var roadMat = new THREE.MeshPhongMaterial({color:0x121314, emissive:0x0a0b0c, transparent:true, opacity:0.65});
+  var greenMat = new THREE.MeshPhongMaterial({color:0x141e14, emissive:0x30d158, emissiveIntensity:0.03, transparent:true, opacity:0.35});
+  var terrainMat = new THREE.MeshPhongMaterial({color:0x0f1011, emissive:0x191a1b, transparent:true, opacity:0.2, wireframe:true});
+
+  /* Key area materials */
+  var keyAreaMat = new THREE.MeshBasicMaterial({color:0x2997ff, transparent:true, opacity:0.06, side:THREE.DoubleSide});
+  var keyFireMat = new THREE.MeshBasicMaterial({color:0xff453a, transparent:true, opacity:0.06, side:THREE.DoubleSide});
+
+  /* Grid */
+  var grid = new THREE.GridHelper(160, 40, 0x0071e3, 0x1a1b1d);
+  grid.material.transparent = true; grid.material.opacity = 0.06;
+  grid.position.y = -0.1; scene.add(grid);
+
+  /* Ground */
+  var gnd = new THREE.Mesh(new THREE.PlaneGeometry(140, 140), groundMat);
+  gnd.rotation.x = -Math.PI/2; gnd.position.y = -0.2; scene.add(gnd);
+
+  function mkBld(w,h,d,x,z,mat){
+    var geo = new THREE.BoxGeometry(w,h,d);
+    var m = new THREE.Mesh(geo, mat||bldMat);
+    m.position.set(x,h/2,z); scene.add(m);
+    var e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), Math.random()>0.5?edgeMat:edgeBlue);
+    e.position.copy(m.position); scene.add(e);
+    return m;
+  }
+
+  /* Buildings */
+  mkBld(10,14,8,-20,-15); mkBld(6,10,6,-20,-5);
+  mkBld(12,16,8,0,-20); mkBld(8,12,6,8,-18,bldAlt);
+  mkBld(14,12,12,0,0,libMat); mkBld(4,20,4,0,0,libMat);
+  mkBld(10,10,10,25,-10,bldAlt); mkBld(8,8,6,28,2,bldAlt);
+  mkBld(8,18,6,-25,15); mkBld(8,18,6,-15,15); mkBld(8,18,6,-5,15); mkBld(8,18,6,5,15);
+  mkBld(8,16,6,-20,25,bldAlt); mkBld(8,16,6,-10,25,bldAlt);
+  /* Gym */
+  var gymGeo = new THREE.CylinderGeometry(8,8,8,16);
+  var gym = new THREE.Mesh(gymGeo, bldAlt);
+  gym.position.set(30,4,18); scene.add(gym);
+  var gymE = new THREE.LineSegments(new THREE.EdgesGeometry(gymGeo), edgeMat);
+  gymE.position.copy(gym.position); scene.add(gymE);
+  /* Gate */
+  mkBld(16,6,3,0,-40); mkBld(2,10,2,-10,-40,bldAlt); mkBld(2,10,2,10,-40,bldAlt);
+
+  /* Roads */
+  function mkRoad(w,d,x,z){
+    var r=new THREE.Mesh(new THREE.PlaneGeometry(w,d),roadMat);
+    r.rotation.x=-Math.PI/2; r.position.set(x,0.05,z); scene.add(r);
+  }
+  mkRoad(4,80,0,-5); mkRoad(60,3,0,-10); mkRoad(50,3,-5,8); mkRoad(40,3,-10,30);
+  mkRoad(3,30,-20,5); mkRoad(3,25,25,5);
+
+  /* Green areas */
+  function mkGreen(w,d,x,z){
+    var g=new THREE.Mesh(new THREE.PlaneGeometry(w,d),greenMat);
+    g.rotation.x=-Math.PI/2; g.position.set(x,0.08,z); scene.add(g);
+  }
+  mkGreen(12,10,-35,-10); mkGreen(15,8,35,-25); mkGreen(20,12,-35,20); mkGreen(10,10,15,30); mkGreen(8,6,-10,-30);
+
+  /* Key security areas (semi-transparent ground planes) */
+  var secArea1 = new THREE.Mesh(new THREE.PlaneGeometry(20,10), keyAreaMat);
+  secArea1.rotation.x=-Math.PI/2; secArea1.position.set(0,0.12,-40); scene.add(secArea1);
+  var secArea2 = new THREE.Mesh(new THREE.PlaneGeometry(18,14), keyAreaMat);
+  secArea2.rotation.x=-Math.PI/2; secArea2.position.set(-20,0.12,20); scene.add(secArea2);
+  /* Fire area */
+  var fireArea = new THREE.Mesh(new THREE.PlaneGeometry(16,14), keyFireMat);
+  fireArea.rotation.x=-Math.PI/2; fireArea.position.set(26,0.12,-4); scene.add(fireArea);
+
+  /* Mountain terrain */
+  var tGeo = new THREE.PlaneGeometry(200,200,30,30);
+  var tPos = tGeo.attributes.position;
+  for(var i=0;i<tPos.count;i++){
+    var tx=tPos.getX(i), ty=tPos.getY(i);
+    var dist=Math.sqrt(tx*tx+ty*ty);
+    if(dist>50){ tPos.setZ(i,(dist-50)*0.12*(Math.sin(tx*0.1)*0.5+Math.cos(ty*0.08)*0.5+0.5)); }
+  }
+  tGeo.computeVertexNormals();
+  var terrain = new THREE.Mesh(tGeo, terrainMat);
+  terrain.rotation.x=-Math.PI/2; terrain.position.y=-0.5; scene.add(terrain);
+
+  /* Markers */
+  var mGeo = new THREE.SphereGeometry(0.5,8,8);
+  var mMat = new THREE.MeshBasicMaterial({color:0x2997ff});
+  var mPositions = [[-20,15,-15],[0,21,0],[0,17,-20],[25,11,-10],[-15,19,15],[30,9,18]];
+  var markers = [];
+  mPositions.forEach(function(p){
+    var mk = new THREE.Mesh(mGeo, mMat.clone());
+    mk.position.set(p[0],p[1],p[2]); scene.add(mk); markers.push(mk);
+    var lGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p[0],0.5,p[2]),new THREE.Vector3(p[0],p[1]-0.5,p[2])]);
+    scene.add(new THREE.Line(lGeo, new THREE.LineBasicMaterial({color:0x2997ff,transparent:true,opacity:0.15})));
+  });
+
+  /* Patrol markers (green) */
+  var patrolMat = new THREE.MeshBasicMaterial({color:0x30d158});
+  var patrolPositions = [[-10,3,-8],[15,3,5],[-25,3,10],[8,3,-30],[20,3,20],[-5,3,25]];
+  var patrolMarkers = [];
+  patrolPositions.forEach(function(p){
+    var pk = new THREE.Mesh(new THREE.SphereGeometry(0.4,6,6), patrolMat.clone());
+    pk.position.set(p[0],p[1],p[2]); scene.add(pk); patrolMarkers.push(pk);
+    /* Pulse ring */
+    var rGeo = new THREE.RingGeometry(0.8,1.2,16);
+    var rMat = new THREE.MeshBasicMaterial({color:0x30d158,transparent:true,opacity:0.2,side:THREE.DoubleSide});
+    var ring = new THREE.Mesh(rGeo, rMat);
+    ring.position.copy(pk.position); ring.rotation.x=-Math.PI/2; scene.add(ring);
+  });
+
+  /* Alert marker (red) */
+  var alertMarker = new THREE.Mesh(new THREE.SphereGeometry(0.8,12,12), new THREE.MeshBasicMaterial({color:0xff453a}));
+  alertMarker.position.set(0,18,-20); scene.add(alertMarker);
+  var alertRingGeo = new THREE.RingGeometry(1.2,2.2,24);
+  var alertRingMat = new THREE.MeshBasicMaterial({color:0xff453a,transparent:true,opacity:0.35,side:THREE.DoubleSide});
+  var alertRing = new THREE.Mesh(alertRingGeo, alertRingMat);
+  alertRing.position.copy(alertMarker.position); alertRing.rotation.x=-Math.PI/2; scene.add(alertRing);
+
+  /* Animation */
+  var angle = 0, radius = 90, speed = 0.0006;
+  function animate(){
+    requestAnimationFrame(animate);
+    angle += speed;
+    camera.position.x = Math.sin(angle)*radius;
+    camera.position.z = Math.cos(angle)*radius;
+    camera.position.y = 65 + Math.sin(angle*0.5)*8;
+    camera.lookAt(0, 5, 0);
+
+    var t = Date.now()*0.003;
+    alertRing.scale.set(1+Math.sin(t)*0.3, 1+Math.sin(t)*0.3, 1);
+    alertRingMat.opacity = 0.2+Math.sin(t)*0.2;
+    mMat.color.setHSL(0.58,1,0.52+Math.sin(t*2)*0.05);
+
+    /* Patrol markers gentle bob */
+    patrolMarkers.forEach(function(pk,i){
+      pk.position.y = 3 + Math.sin(t*1.5+i)*0.3;
+    });
+
+    /* Key area pulse */
+    keyAreaMat.opacity = 0.04 + Math.sin(t*0.8)*0.02;
+    keyFireMat.opacity = 0.04 + Math.sin(t*1.2+1)*0.03;
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize',function(){
+    var w=container.clientWidth, h=container.clientHeight;
+    camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
+  });
+
+  /* Clock */
+  var wk=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  function tick(){
+    var n=new Date(), h=String(n.getHours()).padStart(2,'0'),
+        m=String(n.getMinutes()).padStart(2,'0'), s=String(n.getSeconds()).padStart(2,'0');
+    var el=document.querySelector('.nav-time'); if(el) el.textContent=h+':'+m+':'+s;
+    var y=n.getFullYear(), mo=String(n.getMonth()+1).padStart(2,'0'), d=String(n.getDate()).padStart(2,'0');
+    var de=document.querySelector('.nav-date'); if(de) de.textContent=y+'-'+mo+'-'+d+' '+wk[n.getDay()];
+  }
+  setInterval(tick,1000); tick();
+})();
+</script>
+
+<!-- INTERACTION SCRIPT -->
+<script>
+(function(){
+  function createRipple(e,el){
+    var r=el.getBoundingClientRect(), sz=Math.max(r.width,r.height)*2;
+    var sp=document.createElement('span'); sp.className='ripple';
+    sp.style.width=sp.style.height=sz+'px';
+    sp.style.left=(e.clientX-r.left-sz/2)+'px'; sp.style.top=(e.clientY-r.top-sz/2)+'px';
+    el.style.position=el.style.position||'relative'; el.style.overflow='hidden';
+    el.appendChild(sp); sp.addEventListener('animationend',function(){sp.remove();});
+  }
+  var tt=null;
+  function showToast(msg){
+    var t=document.getElementById('clickToast'); if(!t)return;
+    t.textContent=msg; t.classList.add('show');
+    clearTimeout(tt); tt=setTimeout(function(){t.classList.remove('show');},1800);
+  }
+
+  /* Nav tabs */
+  document.querySelectorAll('.nav-tab').forEach(function(tab){
+    tab.addEventListener('click',function(e){
+      createRipple(e,this);
+      document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.remove('active');});
+      this.classList.add('active');
+      showToast('已切换至「'+this.textContent+'」');
+    });
+  });
+
+  /* Layer control toggle */
+  var lc=document.getElementById('layerControl');
+  var lt=document.getElementById('layerToggle');
+  lt.addEventListener('click',function(){ lc.classList.toggle('collapsed'); });
+
+  /* Layer checkboxes */
+  document.querySelectorAll('.layer-item').forEach(function(item){
+    item.addEventListener('click',function(){
+      var cb=this.querySelector('.layer-checkbox');
+      cb.classList.toggle('checked');
+      var label=this.querySelector('.layer-label').textContent;
+      var on=cb.classList.contains('checked');
+      showToast((on?'已开启':'已关闭')+'「'+label+'」图层');
+    });
+  });
+
+  /* Device rows */
+  document.querySelectorAll('.device-row').forEach(function(row){
+    row.addEventListener('click',function(e){
+      createRipple(e,this);
+      var name=this.querySelector('.device-name').textContent;
+      var rate=this.querySelector('.device-rate-val').textContent;
+      showToast(name+'在线率 '+rate);
+    });
+  });
+
+  /* Alert items */
+  document.querySelectorAll('.alert-item').forEach(function(item){
+    item.addEventListener('click',function(e){
+      createRipple(e,this);
+      var title=this.querySelector('.alert-title-row').textContent;
+      showToast('正在定位：'+title);
+    });
+  });
+
+  /* Area rows */
+  document.querySelectorAll('.area-row').forEach(function(row){
+    row.addEventListener('click',function(e){
+      createRipple(e,this);
+      var name=this.querySelector('.area-name').textContent;
+      showToast('正在聚焦「'+name+'」');
+    });
+  });
+
+  /* Personnel cards */
+  document.querySelectorAll('.personnel-card').forEach(function(card){
+    card.addEventListener('click',function(e){
+      createRipple(e,this);
+      var label=this.querySelector('.personnel-label').textContent;
+      var num=this.querySelector('.personnel-num').textContent;
+      showToast(label+'：'+num);
+    });
+  });
+
+  /* Panels click */
+  document.querySelectorAll('.panel').forEach(function(p){
+    p.addEventListener('click',function(e){
+      if(e.target.closest('.device-row,.alert-item,.area-row,.personnel-card,.layer-item'))return;
+      createRipple(e,this);
+    });
+  });
+})();
+</script>
+</body>
+</html>

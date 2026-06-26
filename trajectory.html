@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<meta name="canvas:aspect-ratio" content="16:9">
+<meta name="canvas:width" content="1920">
+<meta name="canvas:height" content="1080">
+<title>轨迹回放 - 平安校园指挥系统</title>
+<style>
+:root {
+  --seed-bg: #08090a;
+  --seed-fg: #f7f8f8;
+  --seed-primary: #0071e3;
+  --seed-accent: #2997ff;
+  --seed-surface: #0f1011;
+  --seed-radius: 10px;
+  --bg-deep: #08090a;
+  --bg-panel: #0f1011;
+  --bg-elevated: #191a1b;
+  --bg-surface: #28282c;
+  --text-primary: #f7f8f8;
+  --text-secondary: #d0d6e0;
+  --text-muted: #8a8f98;
+  --text-faint: #62666d;
+  --accent: #0071e3;
+  --accent-bright: #2997ff;
+  --accent-hover: #0077ed;
+  --green: #30d158;
+  --red: #ff453a;
+  --yellow: #ffd60a;
+  --orange: #ff9f0a;
+  --border-subtle: rgba(255,255,255,0.05);
+  --border-standard: rgba(255,255,255,0.08);
+  --border-hover: rgba(255,255,255,0.12);
+  --surface-translucent: rgba(255,255,255,0.03);
+  --surface-hover: rgba(255,255,255,0.06);
+  --text-on-accent: #ffffff;
+  --track-color: #2997ff;
+  --track-glow: rgba(41,151,255,0.35);
+  --node-active: #2997ff;
+  --node-visited: rgba(41,151,255,0.40);
+  --node-future: rgba(255,255,255,0.15);
+  --font-display: system-ui, 'Segoe UI', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-body: system-ui, 'Segoe UI', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-mono: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  width:100vw; height:100vh; overflow:hidden;
+  background:var(--bg-deep); color:var(--text-primary);
+  font-family:var(--font-body); font-size:14px; font-weight:400;
+  line-height:1.5; letter-spacing:-0.01em;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ===== LAYOUT ===== */
+.app {
+  width:100vw; height:100vh; position:relative; overflow:hidden;
+}
+
+/* ===== TOP NAV ===== */
+.top-nav {
+  position:absolute; top:0; left:0; right:0; z-index:30;
+  height:52px; display:flex; align-items:center; padding:0 20px;
+  background:rgba(8,9,10,0.88); backdrop-filter:blur(20px) saturate(1.6);
+  border-bottom:1px solid var(--border-subtle);
+}
+.nav-brand { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.nav-brand-icon {
+  width:30px; height:30px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--accent);
+}
+.nav-brand-icon svg { width:16px; height:16px; stroke:var(--text-on-accent); fill:none; stroke-width:1.8; }
+.nav-title { font-size:16px; font-weight:600; letter-spacing:-0.02em; color:var(--text-primary); }
+.nav-subtitle { font-size:9px; font-weight:400; color:var(--text-faint); letter-spacing:0.08em; text-transform:uppercase; margin-top:-1px; }
+.nav-tabs { display:flex; gap:2px; margin:0 auto; }
+.nav-tab {
+  padding:6px 14px; font-size:13px; font-weight:500; color:var(--text-muted);
+  border-radius:6px; cursor:pointer; transition:all 0.2s; user-select:none;
+}
+.nav-tab:hover { color:var(--text-secondary); background:var(--surface-hover); }
+.nav-tab.active { color:var(--text-primary); background:rgba(255,255,255,0.08); }
+.nav-info { display:flex; align-items:center; gap:16px; flex-shrink:0; }
+.nav-weather { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-muted); }
+.nav-weather svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.5; }
+.nav-time { font-family:var(--font-mono); font-size:15px; font-weight:400; color:var(--text-primary); letter-spacing:-0.02em; }
+.nav-date { font-size:11px; color:var(--text-faint); }
+
+/* ===== MAP CONTAINER ===== */
+.map-container { position:absolute; inset:0; z-index:1; }
+#three-canvas { width:100%; height:100%; display:block; }
+
+/* ===== TRAJECTORY SVG OVERLAY ===== */
+.trajectory-overlay {
+  position:absolute; inset:0; z-index:5; pointer-events:none;
+}
+.trajectory-overlay svg { width:100%; height:100%; }
+
+/* ===== LEFT PANEL ===== */
+.left-panel {
+  position:absolute; top:60px; left:20px; bottom:68px;
+  width:310px; z-index:15;
+  display:flex; flex-direction:column; gap:8px;
+  overflow:hidden;
+}
+.panel {
+  background:rgba(15,16,17,0.90); backdrop-filter:blur(16px) saturate(1.4);
+  border:1px solid var(--border-standard); border-radius:var(--seed-radius);
+  overflow:hidden;
+}
+.panel-header {
+  display:flex; align-items:center; gap:8px;
+  padding:10px 14px; border-bottom:1px solid var(--border-subtle);
+}
+.panel-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+.panel-dot.green { background:var(--green); }
+.panel-dot.orange { background:var(--orange); }
+.panel-title { font-size:13px; font-weight:600; color:var(--text-primary); letter-spacing:-0.02em; }
+.panel-badge {
+  margin-left:auto; font-size:10px; font-weight:500; padding:1px 7px;
+  border-radius:980px; background:rgba(41,151,255,0.12); color:var(--accent-bright);
+}
+.panel-body { padding:10px 14px; }
+
+/* Search panel */
+.search-mode {
+  display:flex; gap:2px; padding:2px; margin-bottom:10px;
+  background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:6px;
+}
+.search-mode-btn {
+  flex:1; padding:6px 0; font-size:12px; font-weight:500; color:var(--text-faint);
+  border-radius:4px; cursor:pointer; transition:all 0.15s; text-align:center;
+  border:none; background:transparent; font-family:var(--font-body);
+}
+.search-mode-btn:hover { color:var(--text-muted); }
+.search-mode-btn.active { background:var(--accent); color:var(--text-on-accent); }
+
+.search-field { margin-bottom:8px; }
+.search-label { font-size:11px; font-weight:500; color:var(--text-muted); margin-bottom:4px; display:block; }
+.search-input {
+  width:100%; padding:8px 10px; background:var(--surface-translucent);
+  border:1px solid var(--border-subtle); border-radius:6px;
+  color:var(--text-primary); font-size:13px; font-family:var(--font-body);
+  outline:none; transition:border-color 0.2s;
+}
+.search-input::placeholder { color:var(--text-faint); }
+.search-input:focus { border-color:var(--accent); }
+
+.search-upload {
+  width:100%; padding:16px; border:1.5px dashed var(--border-standard);
+  border-radius:8px; display:flex; flex-direction:column; align-items:center; gap:6px;
+  cursor:pointer; transition:all 0.2s; margin-bottom:8px;
+}
+.search-upload:hover { border-color:var(--accent); background:rgba(41,151,255,0.04); }
+.search-upload svg { width:24px; height:24px; stroke:var(--text-faint); fill:none; stroke-width:1.4; }
+.search-upload-text { font-size:11px; color:var(--text-faint); }
+
+.search-btn {
+  width:100%; padding:8px; border-radius:6px; font-size:13px; font-weight:500;
+  cursor:pointer; transition:all 0.15s; text-align:center;
+  border:none; background:var(--accent); color:var(--text-on-accent); font-family:var(--font-body);
+}
+.search-btn:hover { background:var(--accent-hover); }
+
+/* Target card */
+.target-card {
+  display:flex; align-items:center; gap:10px;
+  padding:10px; border-radius:8px;
+  background:rgba(41,151,255,0.06); border:1px solid rgba(41,151,255,0.15);
+}
+.target-avatar {
+  width:40px; height:40px; border-radius:8px;
+  background:linear-gradient(135deg, var(--accent), var(--accent-bright));
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.target-avatar svg { width:20px; height:20px; stroke:var(--text-on-accent); fill:none; stroke-width:1.6; }
+.target-info { flex:1; min-width:0; }
+.target-name { font-size:14px; font-weight:600; color:var(--text-primary); }
+.target-meta { font-size:11px; color:var(--text-muted); margin-top:1px; }
+.target-match {
+  font-family:var(--font-mono); font-size:12px; font-weight:600;
+  color:var(--green); flex-shrink:0;
+}
+
+/* Trajectory points list */
+.tp-list { overflow-y:auto; max-height:380px; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.08) transparent; }
+.tp-list::-webkit-scrollbar { width:4px; }
+.tp-list::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:2px; }
+.tp-item {
+  display:flex; align-items:flex-start; gap:8px;
+  padding:8px; border-radius:6px; cursor:pointer;
+  transition:all 0.15s; position:relative;
+}
+.tp-item:hover { background:var(--surface-hover); }
+.tp-item.active { background:rgba(41,151,255,0.10); }
+.tp-timeline {
+  display:flex; flex-direction:column; align-items:center;
+  flex-shrink:0; width:20px; padding-top:2px;
+}
+.tp-dot {
+  width:10px; height:10px; border-radius:50%;
+  border:2px solid var(--node-future);
+  background:var(--bg-panel); flex-shrink:0; z-index:2;
+  transition:all 0.3s;
+}
+.tp-item.visited .tp-dot { border-color:var(--node-visited); background:var(--node-visited); }
+.tp-item.active .tp-dot { border-color:var(--node-active); background:var(--node-active); box-shadow:0 0 8px var(--track-glow); }
+.tp-line {
+  width:2px; flex:1; min-height:20px;
+  background:var(--node-future); margin-top:2px;
+}
+.tp-item.visited .tp-line { background:var(--node-visited); }
+.tp-item:last-child .tp-line { display:none; }
+.tp-content { flex:1; min-width:0; }
+.tp-location { font-size:12px; font-weight:500; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tp-camera { font-size:10px; color:var(--text-faint); margin-top:1px; }
+.tp-time { font-family:var(--font-mono); font-size:11px; color:var(--text-faint); flex-shrink:0; margin-top:1px; }
+
+/* ===== RIGHT PANEL ===== */
+.right-panel {
+  position:absolute; top:60px; right:20px; bottom:68px;
+  width:310px; z-index:15;
+  display:flex; flex-direction:column; gap:8px;
+  overflow-y:auto; overflow-x:hidden;
+  scrollbar-width:none;
+}
+.right-panel::-webkit-scrollbar { display:none; }
+.right-panel .panel { flex-shrink:0; }
+
+/* Video preview */
+.video-preview {
+  width:100%; aspect-ratio:16/9; border-radius:6px;
+  background:linear-gradient(145deg, #0c1220, #0a0f18);
+  position:relative; overflow:hidden; border:1px solid var(--border-subtle);
+}
+.video-preview::before {
+  content:''; position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(41,151,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(41,151,255,0.02) 1px, transparent 1px);
+  background-size:24px 24px;
+}
+.video-preview-label {
+  position:absolute; top:6px; left:6px; z-index:2;
+  display:flex; align-items:center; gap:4px;
+  padding:2px 6px; border-radius:3px;
+  background:rgba(255,69,58,0.20); border:1px solid rgba(255,69,58,0.30);
+  font-size:9px; font-weight:600; color:var(--red); letter-spacing:0.04em;
+}
+.video-preview-dot { width:4px; height:4px; border-radius:50%; background:var(--red); animation:blink 1.5s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+.video-preview-play {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:3;
+}
+.video-preview-play-btn {
+  width:40px; height:40px; border-radius:50%;
+  background:rgba(41,151,255,0.85); backdrop-filter:blur(8px);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all 0.2s; border:none;
+}
+.video-preview-play-btn:hover { background:var(--accent); transform:scale(1.1); }
+.video-preview-play-btn svg { width:16px; height:16px; stroke:var(--text-on-accent); fill:none; stroke-width:2; margin-left:2px; }
+.video-preview-time {
+  position:absolute; bottom:6px; right:6px; z-index:2;
+  font-family:var(--font-mono); font-size:10px; color:var(--text-muted);
+  background:rgba(0,0,0,0.5); padding:1px 5px; border-radius:3px;
+}
+
+/* Scene elements in preview */
+.preview-scene-building {
+  position:absolute; bottom:25%; background:rgba(20,25,35,0.8); border-radius:2px 2px 0 0;
+}
+.preview-scene-road {
+  position:absolute; bottom:0; left:0; right:0; height:25%;
+  background:linear-gradient(180deg, rgba(30,35,45,0.6) 0%, rgba(20,25,35,0.4) 100%);
+}
+
+/* Detail info rows */
+.detail-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:6px 0; border-bottom:1px solid var(--border-subtle);
+}
+.detail-row:last-child { border-bottom:none; }
+.detail-row-label { font-size:12px; color:var(--text-muted); }
+.detail-row-value { font-size:12px; font-weight:500; color:var(--text-secondary); }
+.detail-row-value.mono { font-family:var(--font-mono); }
+.detail-row-value.accent { color:var(--accent-bright); }
+
+/* Associated cameras */
+.assoc-cam {
+  display:flex; align-items:center; gap:8px;
+  padding:6px 8px; border-radius:6px; cursor:pointer;
+  transition:all 0.15s;
+}
+.assoc-cam:hover { background:var(--surface-hover); }
+.assoc-cam-thumb {
+  width:40px; height:28px; border-radius:4px; flex-shrink:0;
+  background:linear-gradient(135deg, #0c1220, #10151e);
+  border:1px solid var(--border-subtle); position:relative; overflow:hidden;
+}
+.assoc-cam-thumb::after {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(circle at 50% 50%, rgba(41,151,255,0.08), transparent 60%);
+}
+.assoc-cam-info { flex:1; min-width:0; }
+.assoc-cam-name { font-size:11px; font-weight:500; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.assoc-cam-time { font-size:10px; color:var(--text-faint); font-family:var(--font-mono); }
+
+/* ===== BOTTOM PLAYBACK BAR ===== */
+.playback-bar {
+  position:absolute; bottom:0; left:330px; right:330px; z-index:20;
+  height:56px; display:flex; align-items:center; gap:12px;
+  padding:0 16px;
+  background:rgba(8,9,10,0.92); backdrop-filter:blur(20px) saturate(1.6);
+  border-top:1px solid var(--border-subtle);
+  border-radius:var(--seed-radius) var(--seed-radius) 0 0;
+}
+.pb-mode {
+  display:flex; gap:2px; padding:2px;
+  background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:6px;
+  flex-shrink:0;
+}
+.pb-mode-btn {
+  padding:4px 10px; font-size:11px; font-weight:500; color:var(--text-faint);
+  border-radius:4px; cursor:pointer; transition:all 0.15s;
+  border:none; background:transparent; font-family:var(--font-body);
+}
+.pb-mode-btn:hover { color:var(--text-muted); }
+.pb-mode-btn.active { background:var(--accent); color:var(--text-on-accent); }
+.pb-controls { display:flex; align-items:center; gap:4px; flex-shrink:0; }
+.pb-btn {
+  width:28px; height:28px; border-radius:6px;
+  background:var(--surface-translucent); border:1px solid var(--border-subtle);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all 0.15s;
+}
+.pb-btn:hover { background:var(--surface-hover); }
+.pb-btn svg { width:12px; height:12px; stroke:var(--text-muted); fill:none; stroke-width:1.8; }
+.pb-play {
+  width:34px; height:34px; border-radius:50%;
+  background:var(--accent); border:none;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all 0.15s;
+}
+.pb-play:hover { background:var(--accent-hover); transform:scale(1.05); }
+.pb-play svg { width:14px; height:14px; stroke:var(--text-on-accent); fill:none; stroke-width:2; }
+.pb-speed {
+  font-family:var(--font-mono); font-size:11px; font-weight:600;
+  color:var(--accent-bright); padding:3px 8px;
+  background:rgba(41,151,255,0.08); border:1px solid rgba(41,151,255,0.15);
+  border-radius:4px; cursor:pointer; flex-shrink:0;
+}
+
+/* Timeline */
+.pb-timeline-wrap { flex:1; display:flex; flex-direction:column; gap:2px; }
+.pb-timeline-track {
+  position:relative; height:18px; cursor:pointer;
+  display:flex; align-items:center;
+}
+.pb-timeline-bg {
+  width:100%; height:4px; border-radius:2px;
+  background:rgba(255,255,255,0.06); position:relative; overflow:hidden;
+}
+.pb-timeline-fill {
+  height:100%; border-radius:2px;
+  background:linear-gradient(90deg, var(--accent), var(--accent-bright));
+  transition:width 0.3s ease;
+}
+.pb-timeline-thumb {
+  position:absolute; top:50%;
+  width:14px; height:14px; border-radius:50%;
+  background:var(--accent-bright); border:2px solid var(--bg-panel);
+  transform:translate(-50%, -50%);
+  box-shadow:0 0 10px var(--track-glow);
+  cursor:grab; transition:left 0.3s ease;
+}
+.pb-timeline-nodes {
+  position:absolute; top:50%; left:0; right:0; height:4px;
+  display:flex; align-items:center; pointer-events:none;
+}
+.pb-timeline-node {
+  position:absolute; width:6px; height:6px; border-radius:50%;
+  background:var(--node-future); transform:translate(-50%, -50%); top:50%;
+  transition:all 0.3s;
+}
+.pb-timeline-node.passed { background:var(--accent-bright); }
+.pb-timeline-node.current { background:var(--accent-bright); box-shadow:0 0 6px var(--track-glow); width:8px; height:8px; }
+.pb-timeline-labels { display:flex; justify-content:space-between; }
+.pb-timeline-label { font-family:var(--font-mono); font-size:10px; color:var(--text-faint); }
+.pb-timeline-label.current { color:var(--accent-bright); font-weight:600; }
+
+/* Stats in playback bar */
+.pb-stats { display:flex; gap:12px; flex-shrink:0; }
+.pb-stat { text-align:center; }
+.pb-stat-val { font-family:var(--font-mono); font-size:13px; font-weight:600; color:var(--accent-bright); }
+.pb-stat-label { font-size:9px; color:var(--text-faint); }
+
+/* ===== TRAJECTORY MAP MARKERS ===== */
+.map-marker {
+  position:absolute; z-index:8; pointer-events:auto;
+  transform:translate(-50%, -50%); cursor:pointer;
+}
+.marker-dot {
+  width:12px; height:12px; border-radius:50%;
+  background:var(--accent-bright); border:2px solid var(--bg-panel);
+  box-shadow:0 0 12px var(--track-glow);
+  transition:all 0.3s;
+}
+.marker-dot.visited { background:var(--node-visited); box-shadow:none; }
+.marker-dot.current {
+  width:16px; height:16px;
+  background:var(--accent-bright);
+  box-shadow:0 0 20px var(--track-glow);
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { box-shadow:0 0 12px var(--track-glow); }
+  50% { box-shadow:0 0 24px var(--track-glow), 0 0 48px rgba(41,151,255,0.15); }
+}
+.marker-label {
+  position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  white-space:nowrap; margin-top:4px;
+  font-size:10px; font-weight:500; color:var(--text-muted);
+  background:rgba(8,9,10,0.8); padding:1px 6px; border-radius:3px;
+  pointer-events:none;
+}
+.marker-label.active { color:var(--accent-bright); }
+
+/* Moving person indicator */
+.mover {
+  position:absolute; z-index:10; pointer-events:none;
+  transform:translate(-50%, -50%);
+  transition:left 0.8s ease, top 0.8s ease;
+}
+.mover-ring {
+  width:24px; height:24px; border-radius:50%;
+  border:2px solid var(--accent-bright);
+  background:rgba(41,151,255,0.15);
+  animation:moverPulse 1.5s ease-in-out infinite;
+}
+@keyframes moverPulse {
+  0%,100% { transform:scale(1); opacity:1; }
+  50% { transform:scale(1.4); opacity:0.5; }
+}
+.mover-inner {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:8px; height:8px; border-radius:50%; background:var(--accent-bright);
+}
+
+/* ===== TOAST ===== */
+.click-toast {
+  position:fixed; bottom:72px; left:50%; transform:translateX(-50%) translateY(12px);
+  background:rgba(41,151,255,0.92); color:var(--text-on-accent); font-size:13px; font-weight:500;
+  padding:8px 22px; border-radius:980px; pointer-events:none; opacity:0; z-index:100;
+  backdrop-filter:blur(12px); transition:opacity 0.25s, transform 0.25s; white-space:nowrap;
+}
+.click-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app" data-component="Trajectory Replay Dashboard">
+
+  <!-- TOP NAV -->
+  <nav class="top-nav" data-component="Top Navigation">
+    <div class="nav-brand">
+      <div class="nav-brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <div>
+        <div class="nav-title">平安校园指挥系统</div>
+        <div class="nav-subtitle">TRAJECTORY REPLAY · SAFE CAMPUS</div>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <div class="nav-tab" onclick="location.href='campus-map.html'">可视化地图</div>
+      <div class="nav-tab" onclick="location.href='video-wall.html'">视频监控</div>
+      <div class="nav-tab" onclick="location.href='data-cockpit.html'">数据中心</div>
+      <div class="nav-tab" onclick="location.href='smart-search.html'">智能寻踪</div>
+      <div class="nav-tab" onclick="showToast('资源管理模块开发中')">资源管理</div>
+    </div>
+    <div class="nav-info">
+      <div class="nav-weather">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <span>晴 28°C</span>
+      </div>
+      <div>
+        <div class="nav-time" id="navTime">14:32:08</div>
+        <div class="nav-date">2026-06-26 星期四</div>
+      </div>
+    </div>
+  </nav>
+
+  <main data-component="Trajectory Replay Main">
+
+  <!-- THREE.JS MAP -->
+  <div class="map-container" data-component="Campus Map">
+    <canvas id="three-canvas"></canvas>
+  </div>
+
+  <!-- TRAJECTORY SVG OVERLAY -->
+  <div class="trajectory-overlay" data-component="Trajectory Path">
+    <svg viewBox="0 0 1920 1080" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="pathGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:rgba(41,151,255,0.2)"/>
+          <stop offset="40%" style="stop-color:rgba(41,151,255,0.8)"/>
+          <stop offset="100%" style="stop-color:rgba(41,151,255,0.3)"/>
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- Trajectory path (glow layer) -->
+      <polyline id="pathGlow" fill="none" stroke="rgba(41,151,255,0.15)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"
+        points="480,720 520,650 600,580 700,530 820,500 960,480 1080,520 1160,580 1200,660 1180,750"/>
+      <!-- Trajectory path (main line) -->
+      <polyline id="pathMain" fill="none" stroke="url(#pathGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+        points="480,720 520,650 600,580 700,530 820,500 960,480 1080,520 1160,580 1200,660 1180,750"
+        stroke-dasharray="2200" stroke-dashoffset="800">
+        <animate attributeName="stroke-dashoffset" from="2200" to="0" dur="12s" fill="freeze"/>
+      </polyline>
+      <!-- Animated dot traveling along path -->
+      <circle r="5" fill="var(--accent-bright)" filter="url(#glow)">
+        <animateMotion dur="12s" repeatCount="indefinite"
+          path="M480,720 L520,650 L600,580 L700,530 L820,500 L960,480 L1080,520 L1160,580 L1200,660 L1180,750"/>
+      </circle>
+    </svg>
+  </div>
+
+  <!-- MAP MARKERS at trajectory nodes -->
+  <div class="map-marker" style="left:25%;top:66.7%" onclick="selectNode(0)">
+    <div class="marker-dot visited"></div>
+    <div class="marker-label">南门入口</div>
+  </div>
+  <div class="map-marker" style="left:27.1%;top:60.2%" onclick="selectNode(1)">
+    <div class="marker-dot visited"></div>
+    <div class="marker-label">主干道</div>
+  </div>
+  <div class="map-marker" style="left:31.3%;top:53.7%" onclick="selectNode(2)">
+    <div class="marker-dot visited"></div>
+    <div class="marker-label">图书馆广场</div>
+  </div>
+  <div class="map-marker" style="left:36.5%;top:49.1%" onclick="selectNode(3)">
+    <div class="marker-dot visited"></div>
+    <div class="marker-label">A1教学楼</div>
+  </div>
+  <div class="map-marker" style="left:42.7%;top:46.3%" onclick="selectNode(4)">
+    <div class="marker-dot visited"></div>
+    <div class="marker-label">食堂路口</div>
+  </div>
+  <div class="map-marker" style="left:50%;top:44.4%" onclick="selectNode(5)">
+    <div class="marker-dot current"></div>
+    <div class="marker-label active">实验楼前</div>
+  </div>
+  <div class="map-marker" style="left:56.3%;top:48.1%" onclick="selectNode(6)">
+    <div class="marker-dot"></div>
+    <div class="marker-label">运动场</div>
+  </div>
+  <div class="map-marker" style="left:60.4%;top:53.7%" onclick="selectNode(7)">
+    <div class="marker-dot"></div>
+    <div class="marker-label">宿舍区</div>
+  </div>
+  <div class="map-marker" style="left:62.5%;top:61.1%" onclick="selectNode(8)">
+    <div class="marker-dot"></div>
+    <div class="marker-label">北门通道</div>
+  </div>
+  <div class="map-marker" style="left:61.5%;top:69.4%" onclick="selectNode(9)">
+    <div class="marker-dot"></div>
+    <div class="marker-label">停车场</div>
+  </div>
+
+  <!-- MOVING PERSON INDICATOR -->
+  <div class="mover" id="mover" style="left:50%;top:44.4%">
+    <div class="mover-ring"></div>
+    <div class="mover-inner"></div>
+  </div>
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel" data-component="Search & Trajectory">
+    <!-- Search Panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-dot"></div>
+        <span class="panel-title">轨迹查询</span>
+      </div>
+      <div class="panel-body">
+        <div class="search-mode">
+          <button class="search-mode-btn active" onclick="setSearchMode(this,'person')">人员轨迹</button>
+          <button class="search-mode-btn" onclick="setSearchMode(this,'vehicle')">车辆轨迹</button>
+        </div>
+        <div class="search-upload" onclick="showToast('已上传人脸图片，正在检索...')">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span class="search-upload-text">上传人脸照片</span>
+        </div>
+        <div class="search-field">
+          <label class="search-label">姓名 / 工号</label>
+          <input class="search-input" type="text" placeholder="输入姓名或工号搜索" value="张明远" aria-label="搜索人员姓名或工号">
+        </div>
+        <button class="search-btn" onclick="showToast('已查询到 10 个轨迹节点')">查询轨迹</button>
+      </div>
+    </div>
+
+    <!-- Target Info -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-dot green"></div>
+        <span class="panel-title">查询目标</span>
+      </div>
+      <div class="panel-body">
+        <div class="target-card">
+          <div class="target-avatar">
+            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="target-info">
+            <div class="target-name">张明远</div>
+            <div class="target-meta">计算机学院 · 教职工 · 工号 T20187</div>
+          </div>
+          <div class="target-match">98.6%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trajectory Points -->
+    <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column;">
+      <div class="panel-header">
+        <div class="panel-dot orange"></div>
+        <span class="panel-title">轨迹节点</span>
+        <span class="panel-badge">10 节点</span>
+      </div>
+      <div class="panel-body" style="flex:1;min-height:0;padding-top:6px;">
+        <div class="tp-list" id="tpList">
+          <div class="tp-item visited" onclick="selectNode(0)">
+            <div class="tp-timeline"><div class="tp-dot"></div><div class="tp-line"></div></div>
+            <div class="tp-content">
+              <div class="tp-location">南门入口</div>
+              <div class="tp-camera">CAM-S01 · 人脸抓拍</div>
+            </div>
+            <span class="tp-time">08:12</span>
+          </div>
+          <div class="tp-item visited" onclick="selectNode(1)">
+            <div class="tp-timeline"><div class="tp-dot"></div><div class="tp-line"></div></div>
+            <div class="tp-content">
+              <div class="tp-location">主干道中段</div>
+              <div class="tp-camera">CAM-R03 · 道路监控</div>
+            </div>
+            <span class="tp-time">08:18</span>
+          </div>
+          <div class="tp-item visited" onclick="selectNode(2)">
+            <div class="tp-timeline"><div class="tp-dot"></div><div class="tp-line"></div></div>
+            <div class="tp-content">
+              <div class="tp-location">图书馆广场</div>
+              <div class="tp-camera">CAM-L02 · 广场全景</div>
+            </div>
+            <span class="tp-time">08:25</span>
+          </div>
+          <div class="tp-item visited" onclick="selectNode(3)">
+            <div class="tp-timeline"><div class="tp-dot"></div><div class="tp-line"></div></div>
+            <div class="tp-content">
+              <div class="tp-location">A1教学楼 1F</div>
+              <div class="tp-camera">CAM-A101 · 大厅入口</div>
+            </div>
+            <span class="tp-time">08:34</span>
+          </div>
+          <div class="tp-item visited" onclick="selectNode(4)">
+            <div class="tp-timeline"><div class="tp-dot"></div><div class="tp-line"></div></div>
+            <div class="tp-content">
+              <div class="tp-location">食堂路口</div>
+              <div class="tp-camera">CAM-F01 · 食堂入口</div>
+            </div>
+            <span class="tp-time">09:15</span>
+          </div>
+          <div class="tp-item active" onclick="selectNode(5)">
+            <div class="tp-timeline"><div class="tp-dot"></div><div class="tp-line"></div></div>
+            <div class="tp-content">
+              <div class="tp-location">实验楼前广场</div>
+              <div class="tp-camera">CAM-E05 · 实验楼外</div>
+            </div>
+            <span class="tp-time">09:42</span>
+          </div>
+          <div class="tp-item" onclick="selectNode(6)">
+            <div class="tp-timeline"><div class="tp-dot"></div><div class="tp-line"></div></div>
+            <div class="tp-content">
+              <div class="tp-location">运动场西侧</div>
+              <div class="tp-camera">CAM-SP02 · 运动场</div>
+            </div>
+            <span class="tp-time">10:08</span>
+          </div>
+          <div class="tp-item" onclick="selectNode(7)">
+            <div class="tp-timeline"><div class="tp-dot"></div><div class="tp-line"></div></div>
+            <div class="tp-content">
+              <div class="tp-location">宿舍区B入口</div>
+              <div class="tp-camera">CAM-B01 · 宿舍入口</div>
+            </div>
+            <span class="tp-time">10:35</span>
+          </div>
+          <div class="tp-item" onclick="selectNode(8)">
+            <div class="tp-timeline"><div class="tp-dot"></div><div class="tp-line"></div></div>
+            <div class="tp-content">
+              <div class="tp-location">北门通道</div>
+              <div class="tp-camera">CAM-N03 · 北门</div>
+            </div>
+            <span class="tp-time">11:02</span>
+          </div>
+          <div class="tp-item" onclick="selectNode(9)">
+            <div class="tp-timeline"><div class="tp-dot"></div></div>
+            <div class="tp-content">
+              <div class="tp-location">停车场出口</div>
+              <div class="tp-camera">CAM-P02 · 停车场</div>
+            </div>
+            <span class="tp-time">11:28</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel" data-component="Detail & Video">
+    <!-- Video Preview -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-dot" style="background:var(--red)"></div>
+        <span class="panel-title">关联监控画面</span>
+      </div>
+      <div class="panel-body">
+        <div class="video-preview">
+          <div class="preview-scene-building" style="left:15%;width:30%;height:45%"></div>
+          <div class="preview-scene-building" style="left:55%;width:20%;height:30%"></div>
+          <div class="preview-scene-road"></div>
+          <div class="video-preview-label"><div class="video-preview-dot"></div>回放</div>
+          <div class="video-preview-play">
+            <button class="video-preview-play-btn" onclick="showToast('正在播放关联监控录像...')">
+              <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21"/></svg>
+            </button>
+          </div>
+          <div class="video-preview-time">09:42:16 - 09:43:30</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Point Detail -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-dot green"></div>
+        <span class="panel-title">节点详情</span>
+      </div>
+      <div class="panel-body">
+        <div class="detail-row">
+          <span class="detail-row-label">位置</span>
+          <span class="detail-row-value" id="detailLoc">实验楼前广场</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row-label">摄像头</span>
+          <span class="detail-row-value" id="detailCam">CAM-E05</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row-label">抓拍时间</span>
+          <span class="detail-row-value mono" id="detailTime">09:42:16</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row-label">匹配置信度</span>
+          <span class="detail-row-value accent" data-value="97.8%">97.8%</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row-label">停留时长</span>
+          <span class="detail-row-value mono">3 分 22 秒</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-row-label">行进方向</span>
+          <span class="detail-row-value">东北 → 东</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Associated Cameras -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-dot"></div>
+        <span class="panel-title">周边关联摄像头</span>
+        <span class="panel-badge">4 台</span>
+      </div>
+      <div class="panel-body" style="padding:6px 8px;">
+        <div class="assoc-cam" onclick="showToast('正在调取 CAM-E05 实时画面')">
+          <div class="assoc-cam-thumb"></div>
+          <div class="assoc-cam-info">
+            <div class="assoc-cam-name">CAM-E05 实验楼外</div>
+            <div class="assoc-cam-time">09:42:16 · 匹配 97.8%</div>
+          </div>
+        </div>
+        <div class="assoc-cam" onclick="showToast('正在调取 CAM-E06 实时画面')">
+          <div class="assoc-cam-thumb"></div>
+          <div class="assoc-cam-info">
+            <div class="assoc-cam-name">CAM-E06 实验楼侧门</div>
+            <div class="assoc-cam-time">09:43:02 · 匹配 94.2%</div>
+          </div>
+        </div>
+        <div class="assoc-cam" onclick="showToast('正在调取 CAM-R07 实时画面')">
+          <div class="assoc-cam-thumb"></div>
+          <div class="assoc-cam-info">
+            <div class="assoc-cam-name">CAM-R07 实验楼路口</div>
+            <div class="assoc-cam-time">09:40:48 · 匹配 91.5%</div>
+          </div>
+        </div>
+        <div class="assoc-cam" onclick="showToast('正在调取 CAM-SP03 实时画面')">
+          <div class="assoc-cam-thumb"></div>
+          <div class="assoc-cam-info">
+            <div class="assoc-cam-name">CAM-SP03 运动场入口</div>
+            <div class="assoc-cam-time">09:45:11 · 匹配 88.3%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM PLAYBACK BAR -->
+  <div class="playback-bar" data-component="Playback Controls">
+    <div class="pb-mode">
+      <button class="pb-mode-btn active" onclick="setPbMode(this)">轨迹回放</button>
+      <button class="pb-mode-btn" onclick="setPbMode(this)">实时追踪</button>
+    </div>
+
+    <div class="pb-controls">
+      <div class="pb-btn" onclick="prevNode()"><svg viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4"/><line x1="5" y1="4" x2="5" y2="20"/></svg></div>
+      <div class="pb-play" id="pbPlay" onclick="togglePlay()">
+        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21"/></svg>
+      </div>
+      <div class="pb-btn" onclick="nextNode()"><svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20"/><line x1="19" y1="4" x2="19" y2="20"/></svg></div>
+      <div class="pb-btn" onclick="showToast('已停止回放')"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></div>
+    </div>
+
+    <div class="pb-speed" onclick="cycleSpeed(this)">1.0x</div>
+
+    <div class="pb-timeline-wrap">
+      <div class="pb-timeline-track" onclick="seekTimeline(event)">
+        <div class="pb-timeline-bg">
+          <div class="pb-timeline-fill" id="pbFill" style="width:55%"></div>
+        </div>
+        <div class="pb-timeline-nodes">
+          <div class="pb-timeline-node passed" style="left:5%"></div>
+          <div class="pb-timeline-node passed" style="left:15%"></div>
+          <div class="pb-timeline-node passed" style="left:25%"></div>
+          <div class="pb-timeline-node passed" style="left:35%"></div>
+          <div class="pb-timeline-node passed" style="left:45%"></div>
+          <div class="pb-timeline-node current" style="left:55%"></div>
+          <div class="pb-timeline-node" style="left:65%"></div>
+          <div class="pb-timeline-node" style="left:75%"></div>
+          <div class="pb-timeline-node" style="left:85%"></div>
+          <div class="pb-timeline-node" style="left:95%"></div>
+        </div>
+        <div class="pb-timeline-thumb" id="pbThumb" style="left:55%"></div>
+      </div>
+      <div class="pb-timeline-labels">
+        <span class="pb-timeline-label">08:12</span>
+        <span class="pb-timeline-label current" id="pbCurrent">09:42</span>
+        <span class="pb-timeline-label">11:28</span>
+      </div>
+    </div>
+
+    <div class="pb-stats">
+      <div class="pb-stat">
+        <div class="pb-stat-val" data-value="10">10</div>
+        <div class="pb-stat-label">节点</div>
+      </div>
+      <div class="pb-stat">
+        <div class="pb-stat-val" data-value="2.3km">2.3km</div>
+        <div class="pb-stat-label">总距离</div>
+      </div>
+      <div class="pb-stat">
+        <div class="pb-stat-val" data-value="3h16m">3h16m</div>
+        <div class="pb-stat-label">总时长</div>
+      </div>
+    </div>
+  </div>
+
+  </main>
+</div>
+
+<div class="click-toast" id="clickToast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ===== CLOCK ===== */
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('navTime').textContent = `${h}:${m}:${s}`;
+  const days = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  document.querySelectorAll('.nav-date').forEach(el => {
+    el.textContent = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${days[now.getDay()]}`;
+  });
+}
+setInterval(updateClock, 1000);
+
+/* ===== THREE.JS CAMPUS MAP ===== */
+(function initScene() {
+  const canvas = document.getElementById('three-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+  renderer.setSize(1920, 1080);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x08090a, 1);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x08090a, 0.003);
+
+  const camera = new THREE.PerspectiveCamera(45, 1920/1080, 1, 2000);
+  camera.position.set(0, 500, 600);
+  camera.lookAt(0, 0, 0);
+
+  // Ambient light
+  scene.add(new THREE.AmbientLight(0x1a2030, 0.6));
+  const dirLight = new THREE.DirectionalLight(0x4488cc, 0.4);
+  dirLight.position.set(200, 400, 200);
+  scene.add(dirLight);
+
+  // Ground plane
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(1200, 800),
+    new THREE.MeshLambertMaterial({ color:0x0c1218 })
+  );
+  ground.rotation.x = -Math.PI/2;
+  ground.position.y = -1;
+  scene.add(ground);
+
+  // Grid overlay
+  const gridHelper = new THREE.GridHelper(1200, 40, 0x0f1822, 0x0f1822);
+  gridHelper.position.y = 0;
+  scene.add(gridHelper);
+
+  // Buildings
+  const buildingMat = new THREE.MeshLambertMaterial({ color:0x1a2535 });
+  const buildings = [
+    { x:-200, z:-100, w:80, h:60, d:50 },
+    { x:-100, z:-80, w:60, h:80, d:40 },
+    { x:50, z:-120, w:100, h:50, d:60 },
+    { x:200, z:-60, w:70, h:70, d:55 },
+    { x:-150, z:100, w:90, h:45, d:60 },
+    { x:100, z:120, w:80, h:55, d:50 },
+    { x:280, z:80, w:60, h:40, d:45 },
+    { x:-300, z:0, w:50, h:90, d:40 },
+    { x:320, z:-150, w:70, h:65, d:50 },
+  ];
+  buildings.forEach(b => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), buildingMat);
+    mesh.position.set(b.x, b.h/2, b.z);
+    scene.add(mesh);
+    // Edges
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(mesh.geometry),
+      new THREE.LineBasicMaterial({ color:0x2a3545, transparent:true, opacity:0.5 })
+    );
+    edges.position.copy(mesh.position);
+    scene.add(edges);
+  });
+
+  // Roads
+  const roadMat = new THREE.MeshBasicMaterial({ color:0x141c28, transparent:true, opacity:0.6 });
+  const roads = [
+    { x:0, z:0, w:1000, d:20 },
+    { x:0, z:-150, w:800, d:15 },
+    { x:0, z:150, w:900, d:15 },
+    { x:-200, z:0, w:15, d:500 },
+    { x:100, z:0, w:15, d:600 },
+    { x:300, z:0, w:15, d:400 },
+  ];
+  roads.forEach(r => {
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), roadMat);
+    mesh.rotation.x = -Math.PI/2;
+    mesh.position.set(r.x, 0.5, r.z);
+    scene.add(mesh);
+  });
+
+  // Green areas
+  const greenMat = new THREE.MeshBasicMaterial({ color:0x0a2018, transparent:true, opacity:0.4 });
+  [{ x:-50,z:50,r:40 },{ x:250,z:-30,r:30 },{ x:-250,z:-50,r:25 },{ x:150,z:200,r:35 }].forEach(g => {
+    const mesh = new THREE.Mesh(new THREE.CircleGeometry(g.r, 16), greenMat);
+    mesh.rotation.x = -Math.PI/2;
+    mesh.position.set(g.x, 0.8, g.z);
+    scene.add(mesh);
+  });
+
+  // Trajectory path on 3D scene
+  const pathPoints = [
+    new THREE.Vector3(-380, 2, 200),
+    new THREE.Vector3(-320, 2, 120),
+    new THREE.Vector3(-220, 2, 40),
+    new THREE.Vector3(-120, 2, -20),
+    new THREE.Vector3(0, 2, -50),
+    new THREE.Vector3(100, 2, -70),
+    new THREE.Vector3(220, 2, -20),
+    new THREE.Vector3(300, 2, 40),
+    new THREE.Vector3(340, 2, 120),
+    new THREE.Vector3(320, 2, 220),
+  ];
+  const pathCurve = new THREE.CatmullRomCurve3(pathPoints);
+  const tubeGeo = new THREE.TubeGeometry(pathCurve, 64, 1.5, 8, false);
+  const tubeMat = new THREE.MeshBasicMaterial({ color:0x2997ff, transparent:true, opacity:0.7 });
+  scene.add(new THREE.Mesh(tubeGeo, tubeMat));
+
+  // Glow tube
+  const glowMat = new THREE.MeshBasicMaterial({ color:0x2997ff, transparent:true, opacity:0.15 });
+  const glowGeo = new THREE.TubeGeometry(pathCurve, 64, 5, 8, false);
+  scene.add(new THREE.Mesh(glowGeo, glowMat));
+
+  // Node markers on 3D
+  pathPoints.forEach((p, i) => {
+    const color = i < 5 ? 0x2997ff : (i === 5 ? 0x2997ff : 0x62666d);
+    const size = i === 5 ? 5 : 3;
+    const nodeMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(size, 12, 12),
+      new THREE.MeshBasicMaterial({ color })
+    );
+    nodeMesh.position.copy(p);
+    nodeMesh.position.y = 5;
+    scene.add(nodeMesh);
+    if (i === 5) {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(6, 8, 24),
+        new THREE.MeshBasicMaterial({ color:0x2997ff, transparent:true, opacity:0.4, side:THREE.DoubleSide })
+      );
+      ring.position.copy(p);
+      ring.position.y = 3;
+      ring.rotation.x = -Math.PI/2;
+      scene.add(ring);
+    }
+  });
+
+  // Animate
+  let angle = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    angle += 0.001;
+    camera.position.x = Math.sin(angle) * 50;
+    camera.lookAt(0, 0, 0);
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+
+/* ===== TRAJECTORY NODES DATA ===== */
+const nodes = [
+  { loc:'南门入口', cam:'CAM-S01', time:'08:12:33', pct:5 },
+  { loc:'主干道中段', cam:'CAM-R03', time:'08:18:07', pct:15 },
+  { loc:'图书馆广场', cam:'CAM-L02', time:'08:25:41', pct:25 },
+  { loc:'A1教学楼 1F', cam:'CAM-A101', time:'08:34:19', pct:35 },
+  { loc:'食堂路口', cam:'CAM-F01', time:'09:15:52', pct:45 },
+  { loc:'实验楼前广场', cam:'CAM-E05', time:'09:42:16', pct:55 },
+  { loc:'运动场西侧', cam:'CAM-SP02', time:'10:08:44', pct:65 },
+  { loc:'宿舍区B入口', cam:'CAM-B01', time:'10:35:28', pct:75 },
+  { loc:'北门通道', cam:'CAM-N03', time:'11:02:11', pct:85 },
+  { loc:'停车场出口', cam:'CAM-P02', time:'11:28:56', pct:95 },
+];
+let currentNode = 5;
+
+const moverPositions = [
+  {left:'25%',top:'66.7%'}, {left:'27.1%',top:'60.2%'}, {left:'31.3%',top:'53.7%'},
+  {left:'36.5%',top:'49.1%'}, {left:'42.7%',top:'46.3%'}, {left:'50%',top:'44.4%'},
+  {left:'56.3%',top:'48.1%'}, {left:'60.4%',top:'53.7%'}, {left:'62.5%',top:'61.1%'},
+  {left:'61.5%',top:'69.4%'},
+];
+
+/* ===== SELECT NODE ===== */
+function selectNode(idx) {
+  currentNode = idx;
+  const node = nodes[idx];
+
+  // Update right panel
+  document.getElementById('detailLoc').textContent = node.loc;
+  document.getElementById('detailCam').textContent = node.cam;
+  document.getElementById('detailTime').textContent = node.time;
+
+  // Update timeline
+  document.getElementById('pbFill').style.width = node.pct + '%';
+  document.getElementById('pbThumb').style.left = node.pct + '%';
+  document.getElementById('pbCurrent').textContent = node.time.substring(0,5);
+
+  // Move mover
+  const mover = document.getElementById('mover');
+  mover.style.left = moverPositions[idx].left;
+  mover.style.top = moverPositions[idx].top;
+
+  // Update tp-list active
+  document.querySelectorAll('.tp-item').forEach((el, i) => {
+    el.classList.remove('active');
+    if (i < idx) el.classList.add('visited');
+    else if (i === idx) { el.classList.add('active'); el.classList.add('visited'); }
+    else el.classList.remove('visited');
+  });
+
+  // Update markers
+  document.querySelectorAll('.map-marker').forEach((el, i) => {
+    const dot = el.querySelector('.marker-dot');
+    const label = el.querySelector('.marker-label');
+    dot.classList.remove('visited','current');
+    label.classList.remove('active');
+    if (i < idx) dot.classList.add('visited');
+    else if (i === idx) { dot.classList.add('current'); label.classList.add('active'); }
+  });
+
+  // Update timeline nodes
+  document.querySelectorAll('.pb-timeline-node').forEach((el, i) => {
+    el.classList.remove('passed','current');
+    if (i < idx) el.classList.add('passed');
+    else if (i === idx) el.classList.add('current');
+  });
+
+  showToast(`已定位到: ${node.loc} · ${node.time}`);
+}
+
+/* ===== NAVIGATION ===== */
+function prevNode() {
+  if (currentNode > 0) selectNode(currentNode - 1);
+}
+function nextNode() {
+  if (currentNode < nodes.length - 1) selectNode(currentNode + 1);
+}
+
+/* ===== PLAY ===== */
+let isPlaying = false;
+let playInterval = null;
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const btn = document.getElementById('pbPlay');
+  if (isPlaying) {
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+    playInterval = setInterval(() => {
+      if (currentNode < nodes.length - 1) {
+        selectNode(currentNode + 1);
+      } else {
+        clearInterval(playInterval);
+        isPlaying = false;
+        btn.innerHTML = '<svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21"/></svg>';
+      }
+    }, 2000);
+    showToast('轨迹回放中...');
+  } else {
+    clearInterval(playInterval);
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21"/></svg>';
+    showToast('回放已暂停');
+  }
+}
+
+/* ===== SPEED ===== */
+const speeds = ['0.5x','1.0x','2.0x','4.0x'];
+let speedIdx = 1;
+function cycleSpeed(el) {
+  speedIdx = (speedIdx + 1) % speeds.length;
+  el.textContent = speeds[speedIdx];
+  showToast('回放速度: ' + speeds[speedIdx]);
+}
+
+/* ===== MODES ===== */
+function setSearchMode(btn, mode) {
+  document.querySelectorAll('.search-mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  showToast(mode === 'person' ? '人员轨迹模式' : '车辆轨迹模式');
+}
+function setPbMode(btn) {
+  document.querySelectorAll('.pb-mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+/* ===== TIMELINE SEEK ===== */
+function seekTimeline(e) {
+  const track = e.currentTarget;
+  const rect = track.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  const nearestIdx = Math.round(pct * (nodes.length - 1));
+  selectNode(nearestIdx);
+}
+
+/* ===== TOAST ===== */
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('clickToast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+</script>
+</body>
+</html>
