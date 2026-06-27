@@ -122,6 +122,8 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
 .data-row-bar-wrap { width:60px; height:6px; border-radius:3px; background:rgba(255,255,255,0.05); overflow:hidden; flex-shrink:0; }
 .data-row-bar { height:100%; border-radius:2px; }
 .data-row-val { font-family:var(--font-mono); font-size:12px; font-weight:600; flex-shrink:0; width:36px; text-align:right; }
+.data-row-icon { width:20px; height:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.data-row-icon svg { width:15px; height:15px; stroke-width:1.5; fill:none; stroke-linecap:round; stroke-linejoin:round; }
 
 /* Ring chart */
 .ring-wrap { display:flex; align-items:center; gap:12px; }
@@ -307,11 +309,11 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
       <div class="data-panel" style="flex:0.8">
         <div class="dp-header"><div class="dp-dot red"></div><span class="dp-title">消防告警分布</span></div>
         <div class="dp-body" style="justify-content:space-evenly">
-          <div class="data-row"><span class="data-row-label">烟雾探测</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:67%;background:var(--red)"></div></div><span class="data-row-val" style="color:var(--red)" data-value="8">8</span></div>
-          <div class="data-row"><span class="data-row-label">水压异常</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:33%;background:var(--orange)"></div></div><span class="data-row-val" style="color:var(--orange)" data-value="4">4</span></div>
-          <div class="data-row"><span class="data-row-label">温度超标</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:17%;background:var(--yellow)"></div></div><span class="data-row-val" style="color:var(--yellow)" data-value="2">2</span></div>
-          <div class="data-row"><span class="data-row-label">电气火灾</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:8%;background:var(--text-faint)"></div></div><span class="data-row-val" style="color:var(--text-muted)" data-value="1">1</span></div>
-          <div class="data-row"><span class="data-row-label">手动报警</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:8%;background:var(--text-faint)"></div></div><span class="data-row-val" style="color:var(--text-muted)" data-value="1">1</span></div>
+          <div class="data-row"><span class="data-row-icon" style="color:var(--red)"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/></svg></span><span class="data-row-label">烟雾探测</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:67%;background:var(--red)"></div></div><span class="data-row-val" style="color:var(--red)" data-value="8">8</span></div>
+          <div class="data-row"><span class="data-row-icon" style="color:var(--orange)"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></span><span class="data-row-label">水压异常</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:33%;background:var(--orange)"></div></div><span class="data-row-val" style="color:var(--orange)" data-value="4">4</span></div>
+          <div class="data-row"><span class="data-row-icon" style="color:var(--yellow)"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg></span><span class="data-row-label">温度超标</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:17%;background:var(--yellow)"></div></div><span class="data-row-val" style="color:var(--yellow)" data-value="2">2</span></div>
+          <div class="data-row"><span class="data-row-icon" style="color:var(--text-muted)"><svg viewBox="0 0 24 24" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><span class="data-row-label">电气火灾</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:8%;background:var(--text-faint)"></div></div><span class="data-row-val" style="color:var(--text-muted)" data-value="1">1</span></div>
+          <div class="data-row"><span class="data-row-icon" style="color:var(--text-muted)"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span><span class="data-row-label">手动报警</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:8%;background:var(--text-faint)"></div></div><span class="data-row-val" style="color:var(--text-muted)" data-value="1">1</span></div>
         </div>
       </div>
     </div>
