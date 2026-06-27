@@ -320,27 +320,37 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
     <div class="center-col">
       <!-- 人员通行趋势 + 车辆管控 -->
       <div class="data-panel" style="flex:1">
-        <div class="dp-header"><div class="dp-dot cyan"></div><span class="dp-title">人员通行趋势</span><span class="dp-badge" style="background:rgba(48,209,88,0.12);color:var(--green);">实时</span></div>
+        <div class="dp-header"><div class="dp-dot cyan"></div><span class="dp-title">人员通行趋势</span><span style="display:flex;align-items:center;gap:12px;margin-left:16px"><span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)"><span style="width:8px;height:8px;border-radius:2px;background:var(--green)"></span>学生</span><span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)"><span style="width:8px;height:8px;border-radius:2px;background:var(--accent-bright)"></span>教职工</span></span><span class="dp-badge" style="background:rgba(48,209,88,0.12);color:var(--green);margin-left:auto">实时</span></div>
         <div class="dp-body">
           <div class="chart-wrap">
-            <svg viewBox="0 0 400 130" preserveAspectRatio="xMidYMid meet">
+            <svg viewBox="0 0 400 220" preserveAspectRatio="xMidYMid meet">
               <defs><linearGradient id="areaGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(48,209,88,0.20)"/><stop offset="100%" style="stop-color:rgba(48,209,88,0)"/></linearGradient>
               <linearGradient id="areaBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(41,151,255,0.15)"/><stop offset="100%" style="stop-color:rgba(41,151,255,0)"/></linearGradient></defs>
-              <line x1="30" y1="15" x2="390" y2="15" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="45" x2="390" y2="45" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="75" x2="390" y2="75" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="105" x2="390" y2="105" stroke="rgba(255,255,255,0.04)"/>
-              <text x="24" y="19" text-anchor="end" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">8k</text>
-              <text x="24" y="49" text-anchor="end" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">6k</text>
-              <text x="24" y="79" text-anchor="end" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">4k</text>
-              <text x="24" y="109" text-anchor="end" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">2k</text>
+              <!-- Grid lines -->
+              <line x1="30" y1="30" x2="390" y2="30" stroke="rgba(255,255,255,0.04)"/>
+              <line x1="30" y1="80" x2="390" y2="80" stroke="rgba(255,255,255,0.04)"/>
+              <line x1="30" y1="130" x2="390" y2="130" stroke="rgba(255,255,255,0.04)"/>
+              <line x1="30" y1="180" x2="390" y2="180" stroke="rgba(255,255,255,0.04)"/>
+              <!-- Y labels -->
+              <text x="24" y="34" text-anchor="end" fill="var(--text-faint)" font-size="10" font-family="var(--font-mono)">8k</text>
+              <text x="24" y="84" text-anchor="end" fill="var(--text-faint)" font-size="10" font-family="var(--font-mono)">6k</text>
+              <text x="24" y="134" text-anchor="end" fill="var(--text-faint)" font-size="10" font-family="var(--font-mono)">4k</text>
+              <text x="24" y="184" text-anchor="end" fill="var(--text-faint)" font-size="10" font-family="var(--font-mono)">2k</text>
               <!-- Students area -->
-              <path d="M30,75 L80,60 L130,50 L180,45 L230,55 L280,40 L330,35 L390,30 L390,105 L30,105 Z" fill="url(#areaGreen)"/>
-              <polyline points="30,75 80,60 130,50 180,45 230,55 280,40 330,35 390,30" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M30,118 L80,93 L130,75 L180,65 L230,85 L280,55 L330,43 L390,33 L390,180 L30,180 Z" fill="url(#areaGreen)"/>
+              <polyline points="30,118 80,93 130,75 180,65 230,85 280,55 330,43 390,33" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <!-- Staff area -->
-              <path d="M30,90 L80,85 L130,82 L180,80 L230,83 L280,78 L330,76 L390,74 L390,105 L30,105 Z" fill="url(#areaBlue)"/>
-              <polyline points="30,90 80,85 130,82 180,80 230,83 280,78 330,76 390,74" fill="none" stroke="var(--accent-bright)" stroke-width="1.5" stroke-linecap="round"/>
-              <!-- Legend -->
-              <circle cx="280" cy="122" r="3" fill="var(--green)"/><text x="288" y="125" fill="var(--text-muted)" font-size="9">学生</text>
-              <circle cx="330" cy="122" r="3" fill="var(--accent-bright)"/><text x="338" y="125" fill="var(--text-muted)" font-size="9">教职工</text>
-              <text x="30" y="122" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">06/20</text><text x="130" y="122" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">06/22</text><text x="230" y="122" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">06/24</text><text x="370" y="122" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">06/26</text>
+              <path d="M30,170 L80,165 L130,160 L180,155 L230,163 L280,158 L330,155 L390,150 L390,180 L30,180 Z" fill="url(#areaBlue)"/>
+              <polyline points="30,170 80,165 130,160 180,155 230,163 280,158 330,155 390,150" fill="none" stroke="var(--accent-bright)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- Dots - Students -->
+              <circle cx="30" cy="118" r="3" fill="var(--green)"/><circle cx="80" cy="93" r="3" fill="var(--green)"/><circle cx="130" cy="75" r="3" fill="var(--green)"/><circle cx="180" cy="65" r="3" fill="var(--green)"/><circle cx="230" cy="85" r="3" fill="var(--green)"/><circle cx="280" cy="55" r="3" fill="var(--green)"/><circle cx="330" cy="43" r="3" fill="var(--green)"/><circle cx="390" cy="33" r="4" fill="var(--green)" stroke="var(--bg-panel)" stroke-width="2"/>
+              <!-- Dots - Staff -->
+              <circle cx="30" cy="170" r="3" fill="var(--accent-bright)"/><circle cx="80" cy="165" r="3" fill="var(--accent-bright)"/><circle cx="130" cy="160" r="3" fill="var(--accent-bright)"/><circle cx="180" cy="155" r="3" fill="var(--accent-bright)"/><circle cx="230" cy="163" r="3" fill="var(--accent-bright)"/><circle cx="280" cy="158" r="3" fill="var(--accent-bright)"/><circle cx="330" cy="155" r="3" fill="var(--accent-bright)"/><circle cx="390" cy="150" r="4" fill="var(--accent-bright)" stroke="var(--bg-panel)" stroke-width="2"/>
+              <!-- X labels -->
+              <text x="30" y="205" text-anchor="middle" fill="var(--text-faint)" font-size="9" font-family="var(--font-mono)">06/20</text>
+              <text x="130" y="205" text-anchor="middle" fill="var(--text-faint)" font-size="9" font-family="var(--font-mono)">06/22</text>
+              <text x="230" y="205" text-anchor="middle" fill="var(--text-faint)" font-size="9" font-family="var(--font-mono)">06/24</text>
+              <text x="370" y="205" text-anchor="middle" fill="var(--text-faint)" font-size="9" font-family="var(--font-mono)">06/26</text>
             </svg>
           </div>
         </div>
