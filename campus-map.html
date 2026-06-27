@@ -791,7 +791,7 @@ if(typeof THREE.OrbitControls!=='function'){
 THREE.OrbitControls=function(cam,el){
   this.object=cam;this.domElement=el;this.target=new THREE.Vector3();
   this.enableDamping=true;this.dampingFactor=0.08;this.enablePan=true;this.panSpeed=0.6;
-  this.minDistance=50;this.maxDistance=2000;this.maxPolarAngle=Math.PI*0.46;this.minPolarAngle=Math.PI*0.12;
+  this.minDistance=200;this.maxDistance=1200;this.maxPolarAngle=Math.PI*0.47;this.minPolarAngle=Math.PI*0.08;
   var scope=this,sph=new THREE.Spherical(),sphD=new THREE.Spherical();
   var panOff=new THREE.Vector3(),scale=1,zoomChanged=false;
   var rotS=new THREE.Vector2(),rotE=new THREE.Vector2(),rotD=new THREE.Vector2();
@@ -846,7 +846,7 @@ scene.fog=new THREE.FogExp2(0x08090a,0.0006);
 
 /* ===== Camera ===== */
 var camera=new THREE.PerspectiveCamera(38,W/H,1,3000);
-camera.position.set(0,-435,275);
+camera.position.set(0,-500,155);
 
 /* ===== CSS2D Label Renderer ===== */
 var labelRenderer=null;
@@ -864,10 +864,10 @@ if(typeof THREE.CSS2DRenderer==='function'){
 var controls=new THREE.OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=0.08;
 controls.enablePan=true;controls.panSpeed=0.6;
-controls.minDistance=120;controls.maxDistance=900;
-controls.maxPolarAngle=Math.PI*0.46;
-controls.minPolarAngle=Math.PI*0.12;
-controls.target.set(0,10,18);controls.update();
+controls.maxPolarAngle=Math.PI*0.47;
+controls.minPolarAngle=Math.PI*0.08;
+controls.minDistance=200;controls.maxDistance=1200;
+controls.target.set(0,0,22);controls.update();
 
 /* ===== Lights ===== */
 scene.add(new THREE.AmbientLight(0x4488cc,0.7));
