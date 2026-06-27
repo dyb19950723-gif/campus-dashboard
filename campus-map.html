@@ -250,7 +250,7 @@ html, body {
   background:rgba(15,16,17,0.92); backdrop-filter:blur(16px) saturate(1.4);
   border:1px solid var(--border-standard); border-radius:var(--seed-radius);
   width:200px; height:auto; overflow:hidden;
-  transition:width 0.3s ease, border-radius 0.3s ease;
+  transition:width 0.3s ease, height 0.3s ease, border-radius 0.3s ease;
 }
 .layer-control.collapsed { width:40px; height:40px; border-radius:10px; }
 .layer-toggle {
@@ -1380,7 +1380,21 @@ var CQ_DATA = {"type":"FeatureCollection","features":[{"type":"Feature","propert
   /* Layer control toggle */
   var lc=document.getElementById('layerControl');
   var lt=document.getElementById('layerToggle');
-  lt.addEventListener('click',function(){ lc.classList.toggle('collapsed'); });
+  lt.addEventListener('click',function(){
+    if(lc.classList.contains('collapsed')){
+      lc.classList.remove('collapsed');
+      var h=lc.scrollHeight;
+      lc.style.height=h+'px';
+      var done=function(){lc.style.height='';lc.removeEventListener('transitionend',done);};
+      lc.addEventListener('transitionend',done);
+    }else{
+      lc.style.height=lc.offsetHeight+'px';
+      void lc.offsetHeight;
+      lc.classList.add('collapsed');
+      var done2=function(){lc.style.height='';lc.removeEventListener('transitionend',done2);};
+      lc.addEventListener('transitionend',done2);
+    }
+  });
 
   /* Layer checkboxes */
   document.querySelectorAll('.layer-item').forEach(function(item){
