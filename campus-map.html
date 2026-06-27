@@ -1140,7 +1140,7 @@ function buildMap(feats){
   feats.forEach(function(feat,idx){
     if(!feat.center)return;
     var tp=projC(feat.center[0],feat.center[1],TOP_Z+1);
-    var dist=srcPt.distanceTo(tp);if(dist<8||dist>180)return;
+    var dist=srcPt.distanceTo(tp);if(dist<8||dist>140)return;
     var mid=srcPt.clone().lerp(tp,0.5);mid.z+=Math.max(22,dist*0.13);
     var curve=new THREE.QuadraticBezierCurve3(srcPt,mid,tp);
     var cp=curve.getPoints(56);
