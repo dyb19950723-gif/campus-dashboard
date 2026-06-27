@@ -1382,16 +1382,37 @@ var CQ_DATA = {"type":"FeatureCollection","features":[{"type":"Feature","propert
   var lt=document.getElementById('layerToggle');
   lt.addEventListener('click',function(){
     if(lc.classList.contains('collapsed')){
-      lc.classList.remove('collapsed');
-      var h=lc.scrollHeight;
+      /* Expand: measure natural height at full width BEFORE animating */
+      lc.style.transition='none';
+      lc.style.width='200px';
+      lc.style.height='auto';
+      var h=lc.offsetHeight;
+      /* Lock to collapsed size */
+      lc.style.width='40px';
+      lc.style.height='40px';
+      void lc.offsetHeight; /* force reflow */
+      /* Restore transition and animate */
+      lc.style.transition='';
       lc.style.height=h+'px';
-      var done=function(){lc.style.height='';lc.removeEventListener('transitionend',done);};
+      lc.classList.remove('collapsed');
+      var done=function(e){
+        if(e.propertyName==='width'){
+          lc.style.height='';lc.style.width='';
+          lc.removeEventListener('transitionend',done);
+        }
+      };
       lc.addEventListener('transitionend',done);
     }else{
+      /* Collapse: lock current pixel height, then animate */
       lc.style.height=lc.offsetHeight+'px';
       void lc.offsetHeight;
       lc.classList.add('collapsed');
-      var done2=function(){lc.style.height='';lc.removeEventListener('transitionend',done2);};
+      var done2=function(e){
+        if(e.propertyName==='width'){
+          lc.style.height='';
+          lc.removeEventListener('transitionend',done2);
+        }
+      };
       lc.addEventListener('transitionend',done2);
     }
   });
