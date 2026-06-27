@@ -99,7 +99,9 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
 .dp-dot.orange { background:var(--orange); }
 .dp-title { font-size:13px; font-weight:600; color:var(--text-primary); letter-spacing:-0.02em; }
 .dp-badge { margin-left:auto; font-size:10px; font-weight:500; padding:1px 7px; border-radius:980px; background:rgba(41,151,255,0.12); color:var(--accent-bright); }
-.dp-body { padding:10px 14px; flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.dp-body { padding:10px 14px; flex:1; overflow:auto; display:flex; flex-direction:column; }
+.dp-body::-webkit-scrollbar { width:3px; }
+.dp-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:2px; }
 
 /* Left column */
 .left-col { display:flex; flex-direction:column; gap:8px; overflow:hidden; }
@@ -281,7 +283,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
         <div class="dp-header"><div class="dp-dot cyan"></div><span class="dp-title">安防预警趋势</span><span class="dp-badge">近7日</span></div>
         <div class="dp-body">
           <div class="chart-wrap">
-            <svg viewBox="0 0 280 140" preserveAspectRatio="none">
+            <svg viewBox="0 0 280 140" preserveAspectRatio="xMidYMid meet">
               <defs><linearGradient id="areaCyan" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(41,151,255,0.25)"/><stop offset="100%" style="stop-color:rgba(41,151,255,0)"/></linearGradient></defs>
               <!-- Grid lines -->
               <line x1="30" y1="20" x2="270" y2="20" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="50" x2="270" y2="50" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="80" x2="270" y2="80" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="110" x2="270" y2="110" stroke="rgba(255,255,255,0.04)"/>
@@ -321,7 +323,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
         <div class="dp-header"><div class="dp-dot cyan"></div><span class="dp-title">人员通行趋势</span><span class="dp-badge" style="background:rgba(48,209,88,0.12);color:var(--green);">实时</span></div>
         <div class="dp-body">
           <div class="chart-wrap">
-            <svg viewBox="0 0 400 130" preserveAspectRatio="none">
+            <svg viewBox="0 0 400 130" preserveAspectRatio="xMidYMid meet">
               <defs><linearGradient id="areaGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(48,209,88,0.20)"/><stop offset="100%" style="stop-color:rgba(48,209,88,0)"/></linearGradient>
               <linearGradient id="areaBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(41,151,255,0.15)"/><stop offset="100%" style="stop-color:rgba(41,151,255,0)"/></linearGradient></defs>
               <line x1="30" y1="15" x2="390" y2="15" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="45" x2="390" y2="45" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="75" x2="390" y2="75" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="105" x2="390" y2="105" stroke="rgba(255,255,255,0.04)"/>
@@ -393,7 +395,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
         <div class="dp-header"><div class="dp-dot green"></div><span class="dp-title">设备在线率</span><span class="dp-badge" style="background:rgba(48,209,88,0.12);color:var(--green);">97.1%</span></div>
         <div class="dp-body">
           <div class="chart-wrap">
-            <svg viewBox="0 0 280 120" preserveAspectRatio="none">
+            <svg viewBox="0 0 280 120" preserveAspectRatio="xMidYMid meet">
               <!-- Bar chart -->
               <text x="10" y="12" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">100%</text>
               <text x="10" y="62" fill="var(--text-faint)" font-size="8" font-family="var(--font-mono)">90%</text>
