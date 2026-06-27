@@ -1121,20 +1121,8 @@ function buildMap(feats){
   if(!cityCenter)cityCenter=[(lonMin+lonMax)/2,(latMin+latMax)/2];
   var srcPt=projC(cityCenter[0],cityCenter[1],TOP_Z+32);
 
-  /* ===== Chase Light ===== */
-  (function(){
-    var sil=silhouette(feats);if(!sil||sil.length<8)return;
-    chasePath=cumPath(sil);
-    var n=Math.min(30,Math.floor(sil.length/2));
-    for(var i=0;i<n;i++){
-      var fade=1-i/n;
-      var mat=new THREE.LineBasicMaterial({color:TH.chase,transparent:true,opacity:Math.pow(fade,1.35)*0.85,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false});
-      var geo=new THREE.BufferGeometry();
-      geo.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,0,0,0],3));
-      var line=new THREE.Line(geo,mat);line.renderOrder=10;
-      mapGroup.add(line);chaseSegs.push(line);
-    }
-  })();
+  /* ===== Chase Light (disabled — border trail caused visual clutter) ===== */
+  // chase light removed
 
   /* ===== Fly Lines ===== */
   feats.forEach(function(feat,idx){
