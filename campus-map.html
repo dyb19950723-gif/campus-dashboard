@@ -783,8 +783,51 @@ html, body {
 
 <!-- THREE.JS 3D CAMPUS MAP -->
 <script src="https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+<script src="https://gcore.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://gcore.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+<script>
+/* Fallback: inline OrbitControls if CDN fails */
+if(typeof THREE.OrbitControls!=='function'){
+THREE.OrbitControls=function(cam,el){
+  this.object=cam;this.domElement=el;this.target=new THREE.Vector3();
+  this.enableDamping=true;this.dampingFactor=0.08;this.enablePan=true;this.panSpeed=0.6;
+  this.minDistance=50;this.maxDistance=2000;this.maxPolarAngle=Math.PI*0.48;
+  var scope=this,sph=new THREE.Spherical(),sphD=new THREE.Spherical();
+  var panOff=new THREE.Vector3(),scale=1,zoomChanged=false;
+  var rotS=new THREE.Vector2(),rotE=new THREE.Vector2(),rotD=new THREE.Vector2();
+  var panS=new THREE.Vector2(),panE=new THREE.Vector2(),panD=new THREE.Vector2();
+  var state=0; // 0=none,1=rotate,2=pan
+  var off=new THREE.Vector3();
+  function getAutoRotAngle(d){return 2*Math.PI/60/60*d;}
+  this.update=function(){
+    off.copy(cam.position).sub(this.target);sph.setFromVector3(off);
+    sph.theta+=sphD.theta;sph.phi+=sphD.phi;
+    sph.phi=Math.max(0.01,Math.min(this.maxPolarAngle,sph.phi));
+    sph.radius*=scale;sph.radius=Math.max(this.minDistance,Math.min(this.maxDistance,sph.radius));
+    this.target.add(panOff);off.setFromSpherical(sph);
+    cam.position.copy(this.target).add(off);cam.lookAt(this.target);
+    sphD.theta*=(1-this.dampingFactor);sphD.phi*=(1-this.dampingFactor);
+    panOff.multiplyScalar(1-this.dampingFactor);scale=1;
+  };
+  function onMD(e){if(e.button===0){state=1;rotS.set(e.clientX,e.clientY);}
+    else if(e.button===2){state=2;panS.set(e.clientX,e.clientY);}
+    el.ownerDocument.addEventListener('mousemove',onMM);el.ownerDocument.addEventListener('mouseup',onMU);}
+  function onMM(e){if(state===1){rotE.set(e.clientX,e.clientY);rotD.subVectors(rotE,rotS);
+    sphD.theta-=2*Math.PI*rotD.x/el.clientHeight;
+    sphD.phi-=2*Math.PI*rotD.y/el.clientHeight;rotS.copy(rotE);}
+    else if(state===2){panE.set(e.clientX,e.clientY);panD.subVectors(panE,panS);
+    var te=cam.matrix.elements,v=new THREE.Vector3();
+    v.set(te[0],te[1],te[2]).multiplyScalar(-panD.x*scope.panSpeed*0.05);panOff.add(v);
+    v.set(te[4],te[5],te[6]).multiplyScalar(panD.y*scope.panSpeed*0.05);panOff.add(v);
+    panS.copy(panE);}}
+  function onMU(){state=0;el.ownerDocument.removeEventListener('mousemove',onMM);
+    el.ownerDocument.removeEventListener('mouseup',onMU);}
+  function onWh(e){e.preventDefault();scale*=e.deltaY>0?1.1:0.9;}
+  el.addEventListener('mousedown',onMD);el.addEventListener('wheel',onWh,{passive:false});
+  el.addEventListener('contextmenu',function(e){e.preventDefault();});
+  this.update();
+};}
+</script>
 <script>
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* 3D Chongqing Map — 作者全平台ID：宋夏天Dazzle；公众号：送你整个夏天 */
