@@ -119,7 +119,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
 /* ===== DATA ROWS ===== */
 .data-row { display:flex; align-items:center; gap:8px; padding:5px 0; }
 .data-row-label { font-size:11px; color:var(--text-muted); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.data-row-bar-wrap { width:60px; height:4px; border-radius:2px; background:rgba(255,255,255,0.05); overflow:hidden; flex-shrink:0; }
+.data-row-bar-wrap { width:60px; height:6px; border-radius:3px; background:rgba(255,255,255,0.05); overflow:hidden; flex-shrink:0; }
 .data-row-bar { height:100%; border-radius:2px; }
 .data-row-val { font-family:var(--font-mono); font-size:12px; font-weight:600; flex-shrink:0; width:36px; text-align:right; }
 
@@ -306,7 +306,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
       <!-- 消防监测分布 -->
       <div class="data-panel" style="flex:0.8">
         <div class="dp-header"><div class="dp-dot red"></div><span class="dp-title">消防告警分布</span></div>
-        <div class="dp-body" style="gap:4px">
+        <div class="dp-body" style="justify-content:space-evenly">
           <div class="data-row"><span class="data-row-label">烟雾探测</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:67%;background:var(--red)"></div></div><span class="data-row-val" style="color:var(--red)" data-value="8">8</span></div>
           <div class="data-row"><span class="data-row-label">水压异常</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:33%;background:var(--orange)"></div></div><span class="data-row-val" style="color:var(--orange)" data-value="4">4</span></div>
           <div class="data-row"><span class="data-row-label">温度超标</span><div class="data-row-bar-wrap"><div class="data-row-bar" style="width:17%;background:var(--yellow)"></div></div><span class="data-row-val" style="color:var(--yellow)" data-value="2">2</span></div>
