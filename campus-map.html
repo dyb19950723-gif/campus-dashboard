@@ -334,6 +334,38 @@ html, body {
   backdrop-filter:blur(12px); transition:opacity 0.25s, transform 0.25s; white-space:nowrap;
 }
 .click-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ===== 3D MAP LABELS ===== */
+.map-label-layer { position:absolute!important; top:0; left:0; pointer-events:none; z-index:5; }
+.district-label {
+  color:var(--text-secondary); font-size:10px; font-weight:500;
+  padding:2px 8px; background:rgba(0,113,227,0.15); border:1px solid rgba(41,151,255,0.25);
+  border-radius:4px; white-space:nowrap; pointer-events:none;
+  text-shadow:0 1px 4px rgba(0,0,0,0.9); backdrop-filter:blur(4px);
+  transition:all 0.2s;
+}
+.district-label.highlight {
+  color:var(--text-primary); background:rgba(0,113,227,0.35);
+  border-color:var(--accent-bright); font-size:11px; font-weight:600;
+}
+.district-label .lbl-dot {
+  display:inline-block; width:4px; height:4px; border-radius:50%;
+  background:var(--accent-bright); margin-right:4px; vertical-align:middle;
+}
+.map-loading-overlay {
+  position:absolute; inset:0; z-index:6;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--text-muted); font-size:13px; gap:10px;
+  background:rgba(8,9,10,0.5); backdrop-filter:blur(4px);
+  transition:opacity 0.5s;
+}
+.map-loading-overlay.hidden { opacity:0; pointer-events:none; }
+.map-loading-spinner {
+  width:20px; height:20px; border:2px solid rgba(41,151,255,0.2);
+  border-top-color:var(--accent-bright); border-radius:50%;
+  animation:spinLoader 0.8s linear infinite;
+}
+@keyframes spinLoader { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -372,6 +404,10 @@ html, body {
   <!-- THREE.JS MAP CANVAS -->
   <main class="map-container" data-component="Campus Map Main">
     <canvas id="three-canvas"></canvas>
+    <div class="map-loading-overlay" id="mapLoading">
+      <div class="map-loading-spinner"></div>
+      <span>正在加载重庆地图数据...</span>
+    </div>
   </main>
 
   <!-- LAYER CONTROL -->
@@ -733,6 +769,13 @@ html, body {
     </div>
   </div>
 
+  <!-- MAP TOOLTIP -->
+  <div class="map-tooltip">
+    <div class="tooltip-title"></div>
+    <div class="tooltip-row"><span>状态</span><span class="tooltip-val" style="color:var(--green)">正常</span></div>
+    <div class="tooltip-row"><span>设备</span><span class="tooltip-val">在线</span></div>
+  </div>
+
 </div>
 
 <!-- Toast -->
@@ -740,194 +783,529 @@ html, body {
 
 <!-- THREE.JS 3D CAMPUS MAP -->
 <script src="https://cdn.bootcdn.net/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
 <script>
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* 3D Chongqing Map — 作者全平台ID：宋夏天Dazzle；公众号：送你整个夏天 */
 (function(){
-  var canvas = document.getElementById('three-canvas');
-  var container = canvas.parentElement;
-  var W = container.clientWidth, H = container.clientHeight;
-  var renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
-  renderer.setSize(W, H);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setClearColor(0x08090a, 1);
+'use strict';
+var canvas=document.getElementById('three-canvas'),container=canvas.parentElement;
+var W=container.clientWidth,H=container.clientHeight;
 
-  var scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x08090a, 0.006);
+/* ===== Renderer ===== */
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+renderer.setSize(W,H);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));renderer.setClearColor(0x08090a,1);
 
-  var camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 500);
-  camera.position.set(60, 80, 60);
-  camera.lookAt(0, 0, 0);
+/* ===== Scene ===== */
+var scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x08090a,0.0006);
 
-  /* Lights */
-  scene.add(new THREE.AmbientLight(0x191a1b, 0.7));
-  var dirLight = new THREE.DirectionalLight(0x0071e3, 0.25);
-  dirLight.position.set(30, 50, 20);
-  scene.add(dirLight);
-  var ptLight = new THREE.PointLight(0x2997ff, 0.3, 120);
-  ptLight.position.set(0, 40, 0);
-  scene.add(ptLight);
+/* ===== Camera ===== */
+var camera=new THREE.PerspectiveCamera(38,W/H,1,3000);
+camera.position.set(0,-500,380);
 
-  /* Materials */
-  var groundMat = new THREE.MeshPhongMaterial({color:0x0f1011, emissive:0x08090a, transparent:true, opacity:0.9});
-  var bldMat = new THREE.MeshPhongMaterial({color:0x191a1b, emissive:0x141516, emissiveIntensity:0.15, transparent:true, opacity:0.85});
-  var bldAlt = new THREE.MeshPhongMaterial({color:0x1a1b1d, emissive:0x151618, emissiveIntensity:0.12, transparent:true, opacity:0.82});
-  var libMat = new THREE.MeshPhongMaterial({color:0x151520, emissive:0x0071e3, emissiveIntensity:0.08, transparent:true, opacity:0.85});
-  var edgeMat = new THREE.LineBasicMaterial({color:0x2997ff, transparent:true, opacity:0.25});
-  var edgeBlue = new THREE.LineBasicMaterial({color:0x0071e3, transparent:true, opacity:0.18});
-  var roadMat = new THREE.MeshPhongMaterial({color:0x121314, emissive:0x0a0b0c, transparent:true, opacity:0.65});
-  var greenMat = new THREE.MeshPhongMaterial({color:0x141e14, emissive:0x30d158, emissiveIntensity:0.03, transparent:true, opacity:0.35});
-  var terrainMat = new THREE.MeshPhongMaterial({color:0x0f1011, emissive:0x191a1b, transparent:true, opacity:0.2, wireframe:true});
+/* ===== CSS2D Label Renderer ===== */
+var labelRenderer=null;
+if(typeof THREE.CSS2DRenderer==='function'){
+  labelRenderer=new THREE.CSS2DRenderer();
+  labelRenderer.setSize(W,H);
+  labelRenderer.domElement.className='map-label-layer';
+  labelRenderer.domElement.style.position='absolute';
+  labelRenderer.domElement.style.top='0';
+  labelRenderer.domElement.style.pointerEvents='none';
+  container.appendChild(labelRenderer.domElement);
+}
 
-  /* Key area materials */
-  var keyAreaMat = new THREE.MeshBasicMaterial({color:0x2997ff, transparent:true, opacity:0.06, side:THREE.DoubleSide});
-  var keyFireMat = new THREE.MeshBasicMaterial({color:0xff453a, transparent:true, opacity:0.06, side:THREE.DoubleSide});
+/* ===== OrbitControls ===== */
+var controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=0.08;
+controls.enablePan=true;controls.panSpeed=0.6;
+controls.minDistance=120;controls.maxDistance=900;
+controls.maxPolarAngle=Math.PI*0.46;
+controls.target.set(0,0,20);controls.update();
 
-  /* Grid */
-  var grid = new THREE.GridHelper(160, 40, 0x0071e3, 0x1a1b1d);
-  grid.material.transparent = true; grid.material.opacity = 0.06;
-  grid.position.y = -0.1; scene.add(grid);
+/* ===== Lights ===== */
+scene.add(new THREE.AmbientLight(0x4488cc,0.7));
+var dirLight=new THREE.DirectionalLight(0x88bbff,1.4);
+dirLight.position.set(120,-200,380);scene.add(dirLight);
+var ptLight=new THREE.PointLight(0x2997ff,0.4,600);
+ptLight.position.set(0,0,120);scene.add(ptLight);
 
-  /* Ground */
-  var gnd = new THREE.Mesh(new THREE.PlaneGeometry(140, 140), groundMat);
-  gnd.rotation.x = -Math.PI/2; gnd.position.y = -0.2; scene.add(gnd);
+/* ===== Theme ===== */
+var TH={
+  sideTop:'#2997ff',sideMid:'#0055aa',sideBot:'#060d18',
+  topSurf:'#0c1824',topEmit:'#001122',
+  outline:'#2997ff',outlineBright:'#5ac8fa',
+  flyBase:'#2997ff',flyFlow:'#aaddff',
+  chase:'#5ac8fa',
+  scatter:'#2997ff',scatterGlow:'#0071e3',
+  ringA:'#2997ff',ringB:'#0055aa',
+  hoverTop:'#2997ff',hoverEmit:'#2997ff',
+  hlColor:'#2997ff'
+};
 
-  function mkBld(w,h,d,x,z,mat){
-    var geo = new THREE.BoxGeometry(w,h,d);
-    var m = new THREE.Mesh(geo, mat||bldMat);
-    m.position.set(x,h/2,z); scene.add(m);
-    var e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), Math.random()>0.5?edgeMat:edgeBlue);
-    e.position.copy(m.position); scene.add(e);
-    return m;
-  }
-
-  /* Buildings */
-  mkBld(10,14,8,-20,-15); mkBld(6,10,6,-20,-5);
-  mkBld(12,16,8,0,-20); mkBld(8,12,6,8,-18,bldAlt);
-  mkBld(14,12,12,0,0,libMat); mkBld(4,20,4,0,0,libMat);
-  mkBld(10,10,10,25,-10,bldAlt); mkBld(8,8,6,28,2,bldAlt);
-  mkBld(8,18,6,-25,15); mkBld(8,18,6,-15,15); mkBld(8,18,6,-5,15); mkBld(8,18,6,5,15);
-  mkBld(8,16,6,-20,25,bldAlt); mkBld(8,16,6,-10,25,bldAlt);
-  /* Gym */
-  var gymGeo = new THREE.CylinderGeometry(8,8,8,16);
-  var gym = new THREE.Mesh(gymGeo, bldAlt);
-  gym.position.set(30,4,18); scene.add(gym);
-  var gymE = new THREE.LineSegments(new THREE.EdgesGeometry(gymGeo), edgeMat);
-  gymE.position.copy(gym.position); scene.add(gymE);
-  /* Gate */
-  mkBld(16,6,3,0,-40); mkBld(2,10,2,-10,-40,bldAlt); mkBld(2,10,2,10,-40,bldAlt);
-
-  /* Roads */
-  function mkRoad(w,d,x,z){
-    var r=new THREE.Mesh(new THREE.PlaneGeometry(w,d),roadMat);
-    r.rotation.x=-Math.PI/2; r.position.set(x,0.05,z); scene.add(r);
-  }
-  mkRoad(4,80,0,-5); mkRoad(60,3,0,-10); mkRoad(50,3,-5,8); mkRoad(40,3,-10,30);
-  mkRoad(3,30,-20,5); mkRoad(3,25,25,5);
-
-  /* Green areas */
-  function mkGreen(w,d,x,z){
-    var g=new THREE.Mesh(new THREE.PlaneGeometry(w,d),greenMat);
-    g.rotation.x=-Math.PI/2; g.position.set(x,0.08,z); scene.add(g);
-  }
-  mkGreen(12,10,-35,-10); mkGreen(15,8,35,-25); mkGreen(20,12,-35,20); mkGreen(10,10,15,30); mkGreen(8,6,-10,-30);
-
-  /* Key security areas (semi-transparent ground planes) */
-  var secArea1 = new THREE.Mesh(new THREE.PlaneGeometry(20,10), keyAreaMat);
-  secArea1.rotation.x=-Math.PI/2; secArea1.position.set(0,0.12,-40); scene.add(secArea1);
-  var secArea2 = new THREE.Mesh(new THREE.PlaneGeometry(18,14), keyAreaMat);
-  secArea2.rotation.x=-Math.PI/2; secArea2.position.set(-20,0.12,20); scene.add(secArea2);
-  /* Fire area */
-  var fireArea = new THREE.Mesh(new THREE.PlaneGeometry(16,14), keyFireMat);
-  fireArea.rotation.x=-Math.PI/2; fireArea.position.set(26,0.12,-4); scene.add(fireArea);
-
-  /* Mountain terrain */
-  var tGeo = new THREE.PlaneGeometry(200,200,30,30);
-  var tPos = tGeo.attributes.position;
-  for(var i=0;i<tPos.count;i++){
-    var tx=tPos.getX(i), ty=tPos.getY(i);
-    var dist=Math.sqrt(tx*tx+ty*ty);
-    if(dist>50){ tPos.setZ(i,(dist-50)*0.12*(Math.sin(tx*0.1)*0.5+Math.cos(ty*0.08)*0.5+0.5)); }
-  }
-  tGeo.computeVertexNormals();
-  var terrain = new THREE.Mesh(tGeo, terrainMat);
-  terrain.rotation.x=-Math.PI/2; terrain.position.y=-0.5; scene.add(terrain);
-
-  /* Markers */
-  var mGeo = new THREE.SphereGeometry(0.5,8,8);
-  var mMat = new THREE.MeshBasicMaterial({color:0x2997ff});
-  var mPositions = [[-20,15,-15],[0,21,0],[0,17,-20],[25,11,-10],[-15,19,15],[30,9,18]];
-  var markers = [];
-  mPositions.forEach(function(p){
-    var mk = new THREE.Mesh(mGeo, mMat.clone());
-    mk.position.set(p[0],p[1],p[2]); scene.add(mk); markers.push(mk);
-    var lGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p[0],0.5,p[2]),new THREE.Vector3(p[0],p[1]-0.5,p[2])]);
-    scene.add(new THREE.Line(lGeo, new THREE.LineBasicMaterial({color:0x2997ff,transparent:true,opacity:0.15})));
+/* ===== Side-wall gradient ShaderMaterial ===== */
+function mkWallMat(alpha,topZ,botZ){
+  return new THREE.ShaderMaterial({
+    transparent:true,side:THREE.DoubleSide,depthWrite:false,
+    blending:THREE.NormalBlending,
+    uniforms:{
+      topColor:{value:new THREE.Color(TH.sideTop)},
+      midColor:{value:new THREE.Color(TH.sideMid)},
+      bottomColor:{value:new THREE.Color(TH.sideBot)},
+      alpha:{value:alpha},topZ:{value:topZ},bottomZ:{value:botZ}
+    },
+    vertexShader:'uniform float topZ;uniform float bottomZ;varying float vDepth;void main(){vDepth=clamp((position.z-bottomZ)/max(0.001,topZ-bottomZ),0.0,1.0);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform vec3 topColor;uniform vec3 midColor;uniform vec3 bottomColor;uniform float alpha;varying float vDepth;void main(){vec3 lo=mix(bottomColor,midColor,smoothstep(0.0,0.24,vDepth));vec3 c=mix(lo,topColor,smoothstep(0.34,1.0,vDepth));float eg=smoothstep(0.48,1.0,vDepth);gl_FragColor=vec4(c+eg*topColor*0.24,alpha*(0.42+vDepth*0.58));}'
   });
+}
 
-  /* Patrol markers (green) */
-  var patrolMat = new THREE.MeshBasicMaterial({color:0x30d158});
-  var patrolPositions = [[-10,3,-8],[15,3,5],[-25,3,10],[8,3,-30],[20,3,20],[-5,3,25]];
-  var patrolMarkers = [];
-  patrolPositions.forEach(function(p){
-    var pk = new THREE.Mesh(new THREE.SphereGeometry(0.4,6,6), patrolMat.clone());
-    pk.position.set(p[0],p[1],p[2]); scene.add(pk); patrolMarkers.push(pk);
-    /* Pulse ring */
-    var rGeo = new THREE.RingGeometry(0.8,1.2,16);
-    var rMat = new THREE.MeshBasicMaterial({color:0x30d158,transparent:true,opacity:0.2,side:THREE.DoubleSide});
-    var ring = new THREE.Mesh(rGeo, rMat);
-    ring.position.copy(pk.position); ring.rotation.x=-Math.PI/2; scene.add(ring);
+/* ===== State ===== */
+var mapGroup=null,mapW=620,mapH=420,mapPad=28;
+var projScale=1,offX=0,offY=0;
+var lonMin=1e9,latMin=1e9,lonMax=-1e9,latMax=-1e9;
+var TOP_Z=28,BOT_Z=10;
+var distMeshes=[],topMats=[],wallMats=[],hlMats=[];
+var liftMap=new Map(),allLifts=[];
+var flyMats=[],chaseSegs=[],chasePath=null;
+var scatterRings=[];
+var ringDecor=null;
+var raycaster=new THREE.Raycaster(),ptr=new THREE.Vector2(-9,-9);
+var hovName='',districtMap=new Map();
+var labelEls=new Map();
+var tooltip=document.querySelector('.map-tooltip');
+var loadEl=document.getElementById('mapLoading');
+
+/* ===== Helpers ===== */
+function getRings(g){
+  if(g.type==='Polygon')return g.coordinates;
+  if(g.type==='MultiPolygon'){var r=[];g.coordinates.forEach(function(p){r=r.concat(p);});return r;}
+  return[];
+}
+function featCenter(f){
+  if(f.properties&&f.properties.centroid)return f.properties.centroid;
+  if(f.properties&&f.properties.center)return f.properties.center;
+  var rings=getRings(f.geometry),s=0,cx=0,cy=0;
+  rings.forEach(function(ring){ring.forEach(function(c){cx+=c[0];cy+=c[1];s++;});});
+  return s?[cx/s,cy/s]:null;
+}
+
+/* ===== Parse GeoJSON ===== */
+function parseGeoJSON(data){
+  var feats=[];lonMin=1e9;latMin=1e9;lonMax=-1e9;latMax=-1e9;
+  data.features.forEach(function(f){
+    var rings=getRings(f.geometry);if(!rings.length)return;
+    var pRings=[];
+    rings.forEach(function(ring){
+      var pts=[];
+      ring.forEach(function(c){
+        lonMin=Math.min(lonMin,c[0]);lonMax=Math.max(lonMax,c[0]);
+        latMin=Math.min(latMin,c[1]);latMax=Math.max(latMax,c[1]);
+        pts.push(c);
+      });
+      if(pts.length>2)pRings.push(pts);
+    });
+    if(!pRings.length)return;
+    feats.push({name:(f.properties&&f.properties.name)||'',center:featCenter(f),rings:pRings});
   });
+  return feats;
+}
 
-  /* Alert marker (red) */
-  var alertMarker = new THREE.Mesh(new THREE.SphereGeometry(0.8,12,12), new THREE.MeshBasicMaterial({color:0xff453a}));
-  alertMarker.position.set(0,18,-20); scene.add(alertMarker);
-  var alertRingGeo = new THREE.RingGeometry(1.2,2.2,24);
-  var alertRingMat = new THREE.MeshBasicMaterial({color:0xff453a,transparent:true,opacity:0.35,side:THREE.DoubleSide});
-  var alertRing = new THREE.Mesh(alertRingGeo, alertRingMat);
-  alertRing.position.copy(alertMarker.position); alertRing.rotation.x=-Math.PI/2; scene.add(alertRing);
+/* ===== Projection ===== */
+function setupProj(feats){
+  var pw=mapW-mapPad*2,ph=mapH-mapPad*2;
+  var lw=lonMax-lonMin,lh=latMax-latMin;
+  projScale=Math.min(pw/lw,ph/lh);
+  var projW=lw*projScale,projH=lh*projScale;
+  offX=(mapW-projW)/2;offY=(mapH-projH)/2;
+}
+function proj(lon,lat){return[offX+(lon-lonMin)*projScale,offY+(latMax-lat)*projScale];}
+function projC(lon,lat,z){var p=proj(lon,lat);return new THREE.Vector3(p[0]-mapW/2,-(p[1]-mapH/2),z||0);}
 
-  /* Animation */
-  var angle = 0, radius = 90, speed = 0.0006;
-  function animate(){
-    requestAnimationFrame(animate);
-    angle += speed;
-    camera.position.x = Math.sin(angle)*radius;
-    camera.position.z = Math.cos(angle)*radius;
-    camera.position.y = 65 + Math.sin(angle*0.5)*8;
-    camera.lookAt(0, 5, 0);
+function projRing(ring){
+  return ring.map(function(c){var p=proj(c[0],c[1]);return new THREE.Vector2(p[0]-mapW/2,-(p[1]-mapH/2));});
+}
 
-    var t = Date.now()*0.003;
-    alertRing.scale.set(1+Math.sin(t)*0.3, 1+Math.sin(t)*0.3, 1);
-    alertRingMat.opacity = 0.2+Math.sin(t)*0.2;
-    mMat.color.setHSL(0.58,1,0.52+Math.sin(t*2)*0.05);
+function fixUV(geo){
+  var pos=geo.attributes.position,uv=geo.attributes.uv;
+  for(var i=0;i<pos.count;i++){
+    uv.setXY(i,(pos.getX(i)+mapW/2)/mapW,(pos.getY(i)+mapH/2)/mapH);
+  }
+  uv.needsUpdate=true;return geo;
+}
 
-    /* Patrol markers gentle bob */
-    patrolMarkers.forEach(function(pk,i){
-      pk.position.y = 3 + Math.sin(t*1.5+i)*0.3;
+/* ===== Build side walls ===== */
+function mkWalls(rings,mat){
+  var verts=[],idx=[];
+  rings.forEach(function(ring){
+    var pts=projRing(ring),base=verts.length/3;
+    for(var i=0;i<pts.length;i++){
+      var p=pts[i],n=pts[(i+1)%pts.length],b=verts.length/3;
+      verts.push(p.x,p.y,BOT_Z, n.x,n.y,BOT_Z, n.x,n.y,TOP_Z, p.x,p.y,TOP_Z);
+      idx.push(b,b+1,b+2, b,b+2,b+3);
+    }
+  });
+  if(!verts.length)return null;
+  var geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+  geo.setIndex(idx);geo.computeVertexNormals();
+  return new THREE.Mesh(geo,mat);
+}
+
+/* ===== Silhouette extraction for chase light (grid marching) ===== */
+function silhouette(feats){
+  var cs=1.85,gW=Math.ceil(mapW/cs)+4,gH=Math.ceil(mapH/cs)+4;
+  var grid=new Uint8Array(gW*gH);
+  feats.forEach(function(f){
+    f.rings.forEach(function(ring){
+      var pp=projRing(ring);
+      for(var gy=0;gy<gH;gy++)for(var gx=0;gx<gW;gx++){
+        var px=(gx-gW/2)*cs,py=(gy-gH/2)*cs,inside=false;
+        for(var i=0,j=pp.length-1;i<pp.length;j=i++){
+          var yi=pp[i].y,yj=pp[j].y,xi=pp[i].x,xj=pp[j].x;
+          if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi))inside=!inside;
+        }
+        if(inside)grid[gy*gW+gx]=1;
+      }
+    });
+  });
+  var edges=[],es=new Map();
+  for(var gy=0;gy<gH;gy++)for(var gx=0;gx<gW;gx++){
+    if(!grid[gy*gW+gx])continue;
+    if(gx+1>=gW||!grid[gy*gW+gx+1]){var k1=gy+','+gx+',r';edges.push([[gx+1,gy],[gx+1,gy+1]]);es.set(k1,edges.length-1);}
+    if(gy+1>=gH||!grid[(gy+1)*gW+gx]){var k2=gy+',b,'+gx;edges.push([[gx,gy+1],[gx+1,gy+1]]);es.set(k2,edges.length-1);}
+  }
+  if(!edges.length)return null;
+  var pts=[];for(var i=0;i<Math.min(edges.length,600);i++){
+    var e=edges[i];pts.push(new THREE.Vector3((e[0][0]-gW/2)*cs,(e[0][1]-gH/2)*cs,TOP_Z+0.3));
+  }
+  return pts;
+}
+
+/* ===== Cumulative path for chase light ===== */
+function cumPath(pts){
+  var d=[0],total=0;
+  for(var i=1;i<pts.length;i++){total+=pts[i].distanceTo(pts[i-1]);d.push(total);}
+  return{pts:pts,d:d,total:total};
+}
+function pathAt(cp,dist){
+  dist=((dist%cp.total)+cp.total)%cp.total;
+  for(var i=1;i<cp.d.length;i++){
+    if(cp.d[i]>=dist){var t=(dist-cp.d[i-1])/(cp.d[i]-cp.d[i-1]||1);return cp.pts[i-1].clone().lerp(cp.pts[i],t);}
+  }
+  return cp.pts[cp.pts.length-1].clone();
+}
+
+/* ===== Build map ===== */
+function buildMap(feats){
+  if(mapGroup){scene.remove(mapGroup);}
+  mapGroup=new THREE.Group();mapGroup.position.z=-2;scene.add(mapGroup);
+  distMeshes=[];topMats=[];wallMats=[];hlMats=[];liftMap=new Map();allLifts=[];
+  flyMats=[];chaseSegs=[];scatterRings=[];labelEls=new Map();districtMap=new Map();
+
+  setupProj(feats);
+  var cityCenter=null;
+
+  feats.forEach(function(feat,idx){
+    var grp=new THREE.Group();grp.userData.name=feat.name;
+    var topMat=new THREE.MeshPhongMaterial({
+      color:TH.topSurf,emissive:TH.topEmit,emissiveIntensity:0.08,
+      transparent:true,opacity:0.88,side:THREE.DoubleSide
+    });
+    topMats.push(topMat);
+
+    /* Top surface */
+    feat.rings.forEach(function(ring){
+      var pp=projRing(ring);if(pp.length<3)return;
+      var outer=pp;
+      if(!THREE.ShapeUtils.isClockWise(outer))outer=outer.slice().reverse();
+      var shape=new THREE.Shape();
+      shape.moveTo(outer[0].x,outer[0].y);
+      outer.slice(1).forEach(function(p){shape.lineTo(p.x,p.y);});
+      shape.closePath();
+      var geo=fixUV(new THREE.ShapeGeometry(shape));
+      var mesh=new THREE.Mesh(geo,topMat);
+      mesh.position.z=TOP_Z;mesh.userData.featureName=feat.name;
+      grp.add(mesh);distMeshes.push(mesh);
     });
 
-    /* Key area pulse */
-    keyAreaMat.opacity = 0.04 + Math.sin(t*0.8)*0.02;
-    keyFireMat.opacity = 0.04 + Math.sin(t*1.2+1)*0.03;
+    /* Top outline */
+    feat.rings.forEach(function(ring){
+      var pts=projRing(ring).map(function(p){return new THREE.Vector3(p.x,p.y,TOP_Z+0.2);});
+      pts.push(pts[0].clone());
+      var lm=new THREE.LineBasicMaterial({color:TH.outline,transparent:true,opacity:0.38});
+      grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lm));
+    });
 
-    renderer.render(scene, camera);
-  }
-  animate();
+    /* Side walls */
+    var wm=mkWallMat(0.88,TOP_Z,BOT_Z);wallMats.push(wm);
+    var walls=mkWalls(feat.rings,wm);if(walls)grp.add(walls);
 
-  window.addEventListener('resize',function(){
-    var w=container.clientWidth, h=container.clientHeight;
-    camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
+    /* Highlight mesh */
+    var hlMat=new THREE.MeshBasicMaterial({color:TH.hlColor,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false});
+    hlMats.push(hlMat);
+    feat.rings.forEach(function(ring){
+      var pp=projRing(ring);if(pp.length<3)return;
+      var outer=pp;if(!THREE.ShapeUtils.isClockWise(outer))outer=outer.slice().reverse();
+      var shape=new THREE.Shape();shape.moveTo(outer[0].x,outer[0].y);
+      outer.slice(1).forEach(function(p){shape.lineTo(p.x,p.y);});shape.closePath();
+      var mesh=new THREE.Mesh(new THREE.ShapeGeometry(shape),hlMat);
+      mesh.position.z=TOP_Z+0.6;grp.add(mesh);
+    });
+
+    /* Bottom outline */
+    feat.rings.forEach(function(ring){
+      var pts=projRing(ring).map(function(p){return new THREE.Vector3(p.x,p.y,BOT_Z-0.2);});
+      pts.push(pts[0].clone());
+      grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:TH.outline,transparent:true,opacity:0.10})));
+    });
+
+    /* Lift group */
+    grp.userData.targetZ=0;grp.userData.baseOpacity=1;
+    liftMap.set(feat.name,[grp]);allLifts.push(grp);
+
+    districtMap.set(feat.name,{idx:idx,center:feat.center});
+    mapGroup.add(grp);
+
+    /* Center for fly lines */
+    if(feat.name==='渝中区'||feat.name==='渝北区')cityCenter=feat.center;
   });
 
-  /* Clock */
-  var wk=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
-  function tick(){
-    var n=new Date(), h=String(n.getHours()).padStart(2,'0'),
-        m=String(n.getMinutes()).padStart(2,'0'), s=String(n.getSeconds()).padStart(2,'0');
-    var el=document.querySelector('.nav-time'); if(el) el.textContent=h+':'+m+':'+s;
-    var y=n.getFullYear(), mo=String(n.getMonth()+1).padStart(2,'0'), d=String(n.getDate()).padStart(2,'0');
-    var de=document.querySelector('.nav-date'); if(de) de.textContent=y+'-'+mo+'-'+d+' '+wk[n.getDay()];
+  if(!cityCenter)cityCenter=[(lonMin+lonMax)/2,(latMin+latMax)/2];
+  var srcPt=projC(cityCenter[0],cityCenter[1],TOP_Z+32);
+
+  /* ===== Chase Light ===== */
+  (function(){
+    var sil=silhouette(feats);if(!sil||sil.length<8)return;
+    chasePath=cumPath(sil);
+    var n=Math.min(30,Math.floor(sil.length/2));
+    for(var i=0;i<n;i++){
+      var fade=1-i/n;
+      var mat=new THREE.LineBasicMaterial({color:TH.chase,transparent:true,opacity:Math.pow(fade,1.35)*0.85,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false});
+      var geo=new THREE.BufferGeometry();
+      geo.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,0,0,0],3));
+      var line=new THREE.Line(geo,mat);line.renderOrder=10;
+      mapGroup.add(line);chaseSegs.push(line);
+    }
+  })();
+
+  /* ===== Fly Lines ===== */
+  feats.forEach(function(feat,idx){
+    if(!feat.center)return;
+    var tp=projC(feat.center[0],feat.center[1],TOP_Z+1);
+    var dist=srcPt.distanceTo(tp);if(dist<8)return;
+    var mid=srcPt.clone().lerp(tp,0.5);mid.z+=Math.max(22,dist*0.13);
+    var curve=new THREE.QuadraticBezierCurve3(srcPt,mid,tp);
+    var cp=curve.getPoints(56);
+    /* Base line */
+    mapGroup.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(cp),
+      new THREE.LineBasicMaterial({color:TH.flyBase,transparent:true,opacity:0.10,blending:THREE.AdditiveBlending})
+    ));
+    /* Flow line */
+    var pos=[],prog=[];
+    cp.forEach(function(p,i){pos.push(p.x,p.y,p.z);prog.push(i/(cp.length-1));});
+    var fGeo=new THREE.BufferGeometry();
+    fGeo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    fGeo.setAttribute('progress',new THREE.Float32BufferAttribute(prog,1));
+    var fMat=new THREE.ShaderMaterial({
+      transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,
+      uniforms:{uTime:{value:0},uDelay:{value:idx*0.06},uSpeed:{value:0.28},uColor:{value:new THREE.Color(TH.flyFlow)}},
+      vertexShader:'attribute float progress;varying float vP;void main(){vP=progress;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+      fragmentShader:'uniform float uTime;uniform float uDelay;uniform float uSpeed;uniform vec3 uColor;varying float vP;void main(){float h=fract(uTime*uSpeed+uDelay);float d=h-vP;if(d<0.0)d+=1.0;float body=smoothstep(0.26,0.0,d);float core=smoothstep(0.04,0.0,d);float a=body*0.6+core*0.42;gl_FragColor=vec4(uColor,a);}'
+    });
+    flyMats.push(fMat);
+    var fLine=new THREE.Line(fGeo,fMat);fLine.renderOrder=8;mapGroup.add(fLine);
+  });
+
+  /* ===== Scatter Points ===== */
+  var sGeo=new THREE.SphereGeometry(1.6,10,10);
+  feats.forEach(function(feat,idx){
+    if(!feat.center)return;
+    var p=projC(feat.center[0],feat.center[1],TOP_Z+2.5);
+    var sMat=new THREE.MeshBasicMaterial({color:TH.scatter,transparent:true,opacity:0.75});
+    var sp=new THREE.Mesh(sGeo,sMat);sp.position.copy(p);mapGroup.add(sp);
+    /* Pulse ring */
+    var rGeo=new THREE.RingGeometry(2.2,4.0,20);
+    var rMat=new THREE.MeshBasicMaterial({color:TH.scatterGlow,transparent:true,opacity:0.22,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
+    var ring=new THREE.Mesh(rGeo,rMat);ring.position.copy(p);ring.rotation.x=-Math.PI/2;
+    mapGroup.add(ring);scatterRings.push({ring:ring,mat:rMat,base:p.z});
+  });
+
+  /* ===== Rotating Ring Decoration ===== */
+  (function(){
+    ringDecor=new THREE.Group();ringDecor.position.z=6;ringDecor.scale.set(0.85,0.85,0.85);
+    var rad=Math.max(mapW,mapH)*0.58;
+    var r1g=new THREE.RingGeometry(rad,rad+5,128);
+    ringDecor.add(new THREE.Mesh(r1g,new THREE.MeshBasicMaterial({color:TH.ringA,transparent:true,opacity:0.05,side:THREE.DoubleSide,blending:THREE.AdditiveBlending})));
+    var r2g=new THREE.RingGeometry(rad*0.68,rad*0.68+3,96);
+    ringDecor.add(new THREE.Mesh(r2g,new THREE.MeshBasicMaterial({color:TH.ringB,transparent:true,opacity:0.03,side:THREE.DoubleSide,blending:THREE.AdditiveBlending})));
+    for(var i=0;i<8;i++){
+      var sa=Math.PI*2/8*i,al=Math.PI*0.16;
+      var ag=new THREE.RingGeometry(rad+10,rad+13,16,1,sa,al);
+      ringDecor.add(new THREE.Mesh(ag,new THREE.MeshBasicMaterial({color:TH.ringA,transparent:true,opacity:0.16,side:THREE.DoubleSide,blending:THREE.AdditiveBlending})));
+    }
+    for(var i=0;i<36;i++){
+      if(i%3===0)continue;
+      var a=Math.PI*2/36*i;
+      var lp=[new THREE.Vector3(Math.cos(a)*(rad-8),Math.sin(a)*(rad-8),0),new THREE.Vector3(Math.cos(a)*(rad+1),Math.sin(a)*(rad+1),0)];
+      ringDecor.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(lp),new THREE.LineBasicMaterial({color:TH.ringA,transparent:true,opacity:0.12})));
+    }
+    mapGroup.add(ringDecor);
+  })();
+
+  /* ===== CSS2D Labels ===== */
+  if(labelRenderer){
+    feats.forEach(function(feat){
+      if(!feat.center)return;
+      var p=projC(feat.center[0],feat.center[1],TOP_Z+10);
+      var anchor=document.createElement('div');anchor.className='district-label';
+      anchor.innerHTML='<span class="lbl-dot"></span>'+feat.name;
+      var lbl=new THREE.CSS2DObject(anchor);lbl.position.copy(p);
+      mapGroup.add(lbl);labelEls.set(feat.name,anchor);
+    });
   }
-  setInterval(tick,1000); tick();
+
+  /* Hide loading overlay */
+  if(loadEl){loadEl.classList.add('hidden');setTimeout(function(){loadEl.style.display='none';},600);}
+}
+
+/* ===== Hover ===== */
+function highlight(name){
+  districtMap.forEach(function(data,nm){
+    var isHL=nm===name;
+    var tm=topMats[data.idx];
+    tm.color.set(isHL?TH.hoverTop:TH.topSurf);
+    tm.emissive.set(isHL?TH.hoverEmit:TH.topEmit);
+    tm.emissiveIntensity=isHL?0.55:0.08;
+    tm.opacity=isHL?0.72:0.88;
+    var wm=wallMats[data.idx];
+    if(wm&&wm.uniforms){wm.uniforms.alpha.value=isHL?0.92:0.88;}
+    hlMats[data.idx].userData.targetOpacity=isHL?0.30:0;
+    var le=labelEls.get(nm);
+    if(le){isHL?le.classList.add('highlight'):le.classList.remove('highlight');}
+  });
+  var gs=liftMap.get(name);
+  if(gs)gs.forEach(function(g){g.userData.targetZ=12;});
+}
+function unhighlight(){
+  districtMap.forEach(function(data,nm){
+    var tm=topMats[data.idx];
+    tm.color.set(TH.topSurf);tm.emissive.set(TH.topEmit);
+    tm.emissiveIntensity=0.08;tm.opacity=0.88;
+    var wm=wallMats[data.idx];
+    if(wm&&wm.uniforms){wm.uniforms.alpha.value=0.88;}
+    hlMats[data.idx].userData.targetOpacity=0;
+    var le=labelEls.get(nm);if(le)le.classList.remove('highlight');
+  });
+  allLifts.forEach(function(g){g.userData.targetZ=0;});
+}
+function showTip(name,x,y){
+  if(!tooltip)return;
+  tooltip.querySelector('.tooltip-title').textContent=name;
+  tooltip.classList.add('visible');
+  tooltip.style.left=Math.min(x+16,W-200)+'px';
+  tooltip.style.top=Math.max(y-60,60)+'px';
+}
+function hideTip(){if(tooltip)tooltip.classList.remove('visible');}
+
+renderer.domElement.addEventListener('pointermove',function(e){
+  var r=renderer.domElement.getBoundingClientRect();
+  ptr.x=((e.clientX-r.left)/r.width)*2-1;
+  ptr.y=-((e.clientY-r.top)/r.height)*2+1;
+  raycaster.setFromCamera(ptr,camera);
+  var hits=raycaster.intersectObjects(distMeshes,false);
+  if(hits.length){
+    var n=hits[0].object.userData.featureName||'';
+    if(n!==hovName){hovName=n;highlight(n);}
+    showTip(n,e.clientX,e.clientY);
+  }else if(hovName){hovName='';unhighlight();hideTip();}
+});
+renderer.domElement.addEventListener('pointerleave',function(){
+  if(hovName){hovName='';unhighlight();hideTip();}
+});
+
+/* ===== Animation Loop ===== */
+function animate(){
+  requestAnimationFrame(animate);
+  var t=performance.now()/1000;
+  controls.update();
+
+  /* Idle float */
+  if(mapGroup)mapGroup.position.z=-2+Math.sin(t*0.5)*1.5;
+
+  /* Ring rotation */
+  if(ringDecor)ringDecor.rotation.z+=0.003;
+
+  /* Fly lines */
+  flyMats.forEach(function(m){m.uniforms.uTime.value=t;});
+
+  /* Chase light */
+  if(chasePath&&chaseSegs.length){
+    var spd=220,head=(t*spd)%chasePath.total;
+    var tl=Math.max(60,chasePath.total*0.055);
+    var sl=tl/chaseSegs.length;
+    chaseSegs.forEach(function(seg,i){
+      var d1=head-i*sl,d2=d1-sl*0.7;
+      var p1=pathAt(chasePath,d1),p2=pathAt(chasePath,d2);
+      var pa=seg.geometry.attributes.position;
+      pa.setXYZ(0,p1.x,p1.y,p1.z);pa.setXYZ(1,p2.x,p2.y,p2.z);pa.needsUpdate=true;
+    });
+  }
+
+  /* Scatter pulse */
+  scatterRings.forEach(function(s,i){
+    var pulse=1+Math.sin(t*2+i*0.7)*0.35;
+    s.ring.scale.set(pulse,pulse,1);
+    s.mat.opacity=0.18+Math.sin(t*2+i*0.7)*0.12;
+  });
+
+  /* Lift lerp */
+  allLifts.forEach(function(g){g.position.z+=((g.userData.targetZ||0)-g.position.z)*0.14;});
+
+  /* Highlight opacity lerp */
+  hlMats.forEach(function(m){
+    var tgt=m.userData.targetOpacity||0;
+    m.opacity+=(tgt-m.opacity)*0.16;
+  });
+
+  renderer.render(scene,camera);
+  if(labelRenderer)labelRenderer.render(scene,camera);
+}
+animate();
+
+/* ===== Resize ===== */
+window.addEventListener('resize',function(){
+  var w=container.clientWidth,h=container.clientHeight;
+  camera.aspect=w/h;camera.updateProjectionMatrix();
+  renderer.setSize(w,h);
+  if(labelRenderer)labelRenderer.setSize(w,h);
+});
+
+/* ===== Clock ===== */
+var wk=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+function tick(){
+  var n=new Date(),h=String(n.getHours()).padStart(2,'0'),
+      m=String(n.getMinutes()).padStart(2,'0'),s=String(n.getSeconds()).padStart(2,'0');
+  var el=document.querySelector('.nav-time');if(el)el.textContent=h+':'+m+':'+s;
+  var y=n.getFullYear(),mo=String(n.getMonth()+1).padStart(2,'0'),d=String(n.getDate()).padStart(2,'0');
+  var de=document.querySelector('.nav-date');if(de)de.textContent=y+'-'+mo+'-'+d+' '+wk[n.getDay()];
+}
+setInterval(tick,1000);tick();
+
+/* ===== Load Chongqing GeoJSON ===== */
+fetch('https://geo.datav.aliyun.com/areas_v3/bound/500000_full.json')
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+  .then(function(data){
+    var feats=parseGeoJSON(data);
+    if(feats.length){buildMap(feats);}
+    else{if(loadEl)loadEl.innerHTML='<span style="color:var(--red)">地图数据解析失败</span>';}
+  })
+  .catch(function(err){
+    console.error('Map load error:',err);
+    if(loadEl)loadEl.innerHTML='<span style="color:var(--red)">地图数据加载失败，请检查网络</span>';
+  });
 })();
 </script>
 
