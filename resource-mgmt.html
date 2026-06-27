@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=1920">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>资源管理 · 平安校园指挥系统</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -18,7 +18,7 @@
   --shadow:0 4px 24px rgba(0,0,0,0.3);
 }
 html,body{height:100%;background:var(--bg);color:var(--text-primary);font-family:var(--font);font-size:14px;overflow:hidden}
-.app{display:grid;grid-template-columns:260px 1fr;grid-template-rows:52px 1fr;height:100vh;width:1920px}
+.app{display:grid;grid-template-columns:260px 1fr;grid-template-rows:52px 1fr;height:100vh;width:100%}
 .app::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 60% 30%,rgba(10,132,255,0.04),transparent 60%);pointer-events:none;z-index:0}
 
 /* === NAV BAR === */
@@ -208,6 +208,26 @@ td .mono{font-family:'Cascadia Code','SF Mono',Consolas,monospace;font-size:12px
 /* === CLICK TOAST === */
 .click-toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg-card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:var(--radius);padding:10px 20px;font-size:13px;color:var(--text-primary);opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
 .click-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* === RESPONSIVE === */
+@media(max-width:1200px){
+  .nav-tabs{gap:1px}
+  .nav-tab{padding:6px 10px;font-size:12px}
+  .detail-panel{width:420px}
+}
+@media(max-width:900px){
+  .app{grid-template-columns:200px 1fr}
+  .detail-panel{width:360px}
+  .nav-info{gap:10px}
+  .nav-weather{display:none}
+}
+@media(max-width:600px){
+  .app{grid-template-columns:1fr;grid-template-rows:52px auto 1fr}
+  aside.sidebar{display:none}
+  .detail-panel{width:100vw}
+  .page-header{flex-direction:column;align-items:flex-start;gap:12px}
+  .cards-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
