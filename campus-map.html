@@ -791,7 +791,7 @@ if(typeof THREE.OrbitControls!=='function'){
 THREE.OrbitControls=function(cam,el){
   this.object=cam;this.domElement=el;this.target=new THREE.Vector3();
   this.enableDamping=true;this.dampingFactor=0.08;this.enablePan=true;this.panSpeed=0.6;
-  this.minDistance=200;this.maxDistance=1200;this.maxPolarAngle=Math.PI*0.47;this.minPolarAngle=Math.PI*0.08;
+  this.minDistance=200;this.maxDistance=1200;this.maxPolarAngle=Math.PI*0.48;this.minPolarAngle=Math.PI*0.05;
   var scope=this,sph=new THREE.Spherical(),sphD=new THREE.Spherical();
   var panOff=new THREE.Vector3(),scale=1,zoomChanged=false;
   var rotS=new THREE.Vector2(),rotE=new THREE.Vector2(),rotD=new THREE.Vector2();
@@ -846,7 +846,7 @@ scene.fog=new THREE.FogExp2(0x08090a,0.0006);
 
 /* ===== Camera ===== */
 var camera=new THREE.PerspectiveCamera(38,W/H,1,3000);
-camera.position.set(0,-500,155);
+camera.position.set(0,180,-380);
 
 /* ===== CSS2D Label Renderer ===== */
 var labelRenderer=null;
@@ -864,17 +864,17 @@ if(typeof THREE.CSS2DRenderer==='function'){
 var controls=new THREE.OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;controls.dampingFactor=0.08;
 controls.enablePan=true;controls.panSpeed=0.6;
-controls.maxPolarAngle=Math.PI*0.47;
-controls.minPolarAngle=Math.PI*0.08;
+controls.maxPolarAngle=Math.PI*0.48;
+controls.minPolarAngle=Math.PI*0.05;
 controls.minDistance=200;controls.maxDistance=1200;
-controls.target.set(0,0,22);controls.update();
+controls.target.set(0,25,0);controls.update();
 
 /* ===== Lights ===== */
 scene.add(new THREE.AmbientLight(0x4488cc,0.7));
 var dirLight=new THREE.DirectionalLight(0x88bbff,1.4);
-dirLight.position.set(120,-200,380);scene.add(dirLight);
+dirLight.position.set(120,380,200);scene.add(dirLight);
 var ptLight=new THREE.PointLight(0x2997ff,0.4,600);
-ptLight.position.set(0,0,120);scene.add(ptLight);
+ptLight.position.set(0,120,0);scene.add(ptLight);
 
 /* ===== Theme ===== */
 var TH={
@@ -1044,7 +1044,9 @@ function pathAt(cp,dist){
 /* ===== Build map ===== */
 function buildMap(feats){
   if(mapGroup){scene.remove(mapGroup);}
-  mapGroup=new THREE.Group();mapGroup.position.z=-2;scene.add(mapGroup);
+  mapGroup=new THREE.Group();
+  mapGroup.rotation.x=-Math.PI/2;
+  scene.add(mapGroup);
   distMeshes=[];topMats=[];wallMats=[];hlMats=[];liftMap=new Map();allLifts=[];
   flyMats=[];chaseSegs=[];scatterRings=[];labelEls=new Map();districtMap=new Map();
 
@@ -1173,7 +1175,7 @@ function buildMap(feats){
     /* Pulse ring */
     var rGeo=new THREE.RingGeometry(2.2,4.0,20);
     var rMat=new THREE.MeshBasicMaterial({color:TH.scatterGlow,transparent:true,opacity:0.22,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
-    var ring=new THREE.Mesh(rGeo,rMat);ring.position.copy(p);ring.rotation.x=-Math.PI/2;
+    var ring=new THREE.Mesh(rGeo,rMat);ring.position.copy(p);
     mapGroup.add(ring);scatterRings.push({ring:ring,mat:rMat,base:p.z});
   });
 
@@ -1277,7 +1279,7 @@ function animate(){
   controls.update();
 
   /* Idle float */
-  if(mapGroup)mapGroup.position.z=-2+Math.sin(t*0.5)*1.5;
+  if(mapGroup)mapGroup.position.y=Math.sin(t*0.5)*1.5;
 
   /* Ring rotation */
   if(ringDecor)ringDecor.rotation.z+=0.003;
