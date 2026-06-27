@@ -249,9 +249,9 @@ html, body {
   position:absolute; top:64px; left:350px; z-index:15;
   background:rgba(15,16,17,0.92); backdrop-filter:blur(16px) saturate(1.4);
   border:1px solid var(--border-standard); border-radius:var(--seed-radius);
-  width:200px; overflow:hidden; transition:all 0.3s ease;
+  width:200px; overflow:hidden; transition:width 0.3s ease, border-radius 0.3s ease;
 }
-.layer-control.collapsed { width:40px; height:40px; border-radius:10px; overflow:hidden; }
+.layer-control.collapsed { width:40px; border-radius:10px; }
 .layer-toggle {
   width:40px; height:40px; display:flex; align-items:center; justify-content:center;
   cursor:pointer; color:var(--text-muted); transition:color 0.2s;
