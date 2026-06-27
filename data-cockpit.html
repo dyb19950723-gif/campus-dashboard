@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=1920, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="canvas:aspect-ratio" content="16:9">
 <meta name="canvas:width" content="1920">
 <meta name="canvas:height" content="1080">
@@ -168,6 +168,34 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
 /* ===== TOAST ===== */
 .click-toast { position:fixed; bottom:56px; left:50%; transform:translateX(-50%) translateY(12px); background:rgba(41,151,255,0.92); color:var(--text-on-accent); font-size:13px; font-weight:500; padding:8px 22px; border-radius:980px; pointer-events:none; opacity:0; z-index:100; backdrop-filter:blur(12px); transition:opacity 0.25s, transform 0.25s; white-space:nowrap; }
 .click-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ===== RESPONSIVE SCALING ===== */
+@media(min-width:2200px){
+  .kpi-value{font-size:30px}
+  .kpi-label{font-size:12px}
+  .kpi-sub{font-size:11px}
+  .dp-title{font-size:14px}
+  .brand-title{font-size:18px}
+  .top-nav-tab{font-size:14px;padding:7px 18px}
+  .alert-title{font-size:12px}
+  .alert-meta,.alert-time{font-size:11px}
+  .ticker-item{font-size:13px}
+  .ring-wrap svg{width:100px;height:100px}
+  .main-grid{gap:12px;padding:0 24px 12px}
+  .kpi-row{gap:12px;padding:14px 24px}
+}
+@media(max-width:1400px){
+  .kpi-row{grid-template-columns:repeat(4,1fr)}
+  .main-grid{grid-template-columns:1fr 1fr}
+  .right-col{grid-column:1/-1;flex-direction:row;gap:8px}
+  .right-col .data-panel{flex:1}
+}
+@media(max-width:900px){
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .main-grid{grid-template-columns:1fr}
+  .right-col{flex-direction:column}
+  .top-nav-tabs{display:none}
+}
 </style>
 </head>
 <body>
