@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>资源管理 · 平安校园指挥系统</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#08090a;--bg-panel:rgba(15,16,17,0.88);--bg-card:rgba(20,21,23,0.92);
+  --surface-hover:rgba(255,255,255,0.06);--surface-active:rgba(255,255,255,0.08);
+  --text-primary:#f5f5f7;--text-secondary:#a1a1a6;--text-muted:#636366;--text-on-accent:#ffffff;
+  --accent:#0a84ff;--accent-bright:#64d2ff;--cyan:#64d2ff;
+  --green:#30d158;--red:#ff453a;--orange:#ff9f0a;--yellow:#ffd60a;--purple:#bf5af2;
+  --border:rgba(255,255,255,0.08);--border-focus:rgba(10,132,255,0.5);
+  --radius:10px;--radius-sm:6px;--radius-lg:14px;
+  --font:system-ui,'Segoe UI','Microsoft YaHei','Helvetica Neue',sans-serif;
+  --shadow:0 4px 24px rgba(0,0,0,0.3);
+}
+html,body{height:100%;background:var(--bg);color:var(--text-primary);font-family:var(--font);font-size:14px;overflow:hidden}
+.app{display:grid;grid-template-columns:260px 1fr;grid-template-rows:52px 1fr;height:100vh;width:1920px}
+.app::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 60% 30%,rgba(10,132,255,0.04),transparent 60%);pointer-events:none;z-index:0}
+
+/* === NAV BAR === */
+nav.top-nav{grid-column:1/-1;display:flex;align-items:center;background:var(--bg-panel);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 24px;z-index:100;position:relative}
+.nav-brand{display:flex;align-items:center;gap:12px}
+.nav-logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--cyan));display:flex;align-items:center;justify-content:center}
+.nav-logo svg{width:18px;height:18px;stroke:#fff;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.nav-title{font-size:15px;font-weight:600;letter-spacing:0.5px}
+.nav-subtitle{font-size:10px;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase}
+.nav-tabs{display:flex;gap:2px;margin:0 auto}
+.nav-tab{padding:6px 14px;font-size:13px;font-weight:500;color:var(--text-muted);border-radius:var(--radius-sm);cursor:pointer;transition:all .2s;user-select:none}
+.nav-tab:hover{color:var(--text-secondary);background:var(--surface-hover)}
+.nav-tab.active{color:var(--text-primary);background:var(--surface-active)}
+.nav-info{display:flex;align-items:center;gap:16px;font-size:12px;color:var(--text-secondary)}
+.nav-weather{display:flex;align-items:center;gap:6px}
+.nav-weather svg{width:16px;height:16px;stroke:var(--text-muted);stroke-width:1.5;fill:none}
+.nav-time{font-size:14px;font-weight:600;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.nav-date{font-size:11px;color:var(--text-muted)}
+
+/* === SIDEBAR === */
+aside.sidebar{background:var(--bg-panel);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-right:1px solid var(--border);padding:20px 0;overflow-y:auto;position:relative;z-index:1}
+.sidebar::-webkit-scrollbar{width:4px}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
+.sidebar-section{padding:0 16px;margin-bottom:20px}
+.sidebar-label{font-size:10px;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;padding:0 12px}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;transition:all .2s;color:var(--text-secondary);font-size:13px;font-weight:500}
+.sidebar-item:hover{background:var(--surface-hover);color:var(--text-primary)}
+.sidebar-item.active{background:rgba(10,132,255,0.12);color:var(--accent-bright)}
+.sidebar-item svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.sidebar-item .item-badge{margin-left:auto;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.badge-blue{background:rgba(10,132,255,0.15);color:var(--accent-bright)}
+.badge-green{background:rgba(48,209,88,0.15);color:var(--green)}
+.badge-orange{background:rgba(255,159,10,0.15);color:var(--orange)}
+.badge-red{background:rgba(255,69,58,0.15);color:var(--red)}
+
+.sidebar-stats{margin-top:auto;padding:16px;border-top:1px solid var(--border)}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px}
+.stat-card:last-child{margin-bottom:0}
+.stat-label{font-size:11px;color:var(--text-muted);margin-bottom:6px}
+.stat-val{font-size:22px;font-weight:700;color:var(--text-primary)}
+.stat-val span{font-size:12px;font-weight:400;color:var(--text-muted);margin-left:4px}
+.stat-bar{height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-top:8px;overflow:hidden}
+.stat-bar-fill{height:100%;border-radius:2px}
+
+/* === MAIN CONTENT === */
+main.content{overflow-y:auto;padding:24px 28px;position:relative;z-index:1}
+main.content::-webkit-scrollbar{width:6px}
+main.content::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.page-title{font-size:20px;font-weight:700}
+.page-desc{font-size:12px;color:var(--text-muted);margin-top:4px}
+.page-actions{display:flex;gap:8px}
+.btn{padding:8px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);display:flex;align-items:center;gap:6px}
+.btn:hover{background:var(--surface-hover);color:var(--text-primary)}
+.btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.btn-primary{background:var(--accent);color:var(--text-on-accent);border-color:var(--accent)}
+.btn-primary:hover{background:#0977e6}
+
+/* === TABLE === */
+.table-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.table-toolbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.table-search{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px}
+.table-search input{background:none;border:none;outline:none;color:var(--text-primary);font-size:12px;width:200px;font-family:var(--font)}
+.table-search input::placeholder{color:var(--text-muted)}
+.table-search svg{width:14px;height:14px;stroke:var(--text-muted);stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.table-filters{display:flex;gap:8px}
+.filter-chip{padding:5px 12px;border-radius:var(--radius-sm);font-size:11px;font-weight:500;color:var(--text-muted);background:rgba(255,255,255,0.04);border:1px solid var(--border);cursor:pointer;transition:all .2s}
+.filter-chip:hover,.filter-chip.active{color:var(--accent-bright);border-color:var(--border-focus);background:rgba(10,132,255,0.08)}
+
+table{width:100%;border-collapse:collapse}
+thead{background:rgba(255,255,255,0.02)}
+th{padding:10px 18px;text-align:left;font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;border-bottom:1px solid var(--border)}
+td{padding:12px 18px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--text-secondary)}
+tr:hover td{background:var(--surface-hover)}
+td .mono{font-family:'Cascadia Code','SF Mono',Consolas,monospace;font-size:12px}
+
+.status{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:500}
+.status::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.status-online{background:rgba(48,209,88,0.12);color:var(--green)}.status-online::before{background:var(--green)}
+.status-offline{background:rgba(255,69,58,0.12);color:var(--red)}.status-offline::before{background:var(--red)}
+.status-warn{background:rgba(255,159,10,0.12);color:var(--orange)}.status-warn::before{background:var(--orange)}
+.status-info{background:rgba(10,132,255,0.12);color:var(--accent-bright)}.status-info::before{background:var(--accent)}
+
+.action-link{color:var(--accent-bright);cursor:pointer;font-size:12px;text-decoration:none}
+.action-link:hover{text-decoration:underline}
+
+/* === CARDS GRID (for map zones, alert config, etc) === */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.config-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;transition:all .2s;cursor:pointer}
+.config-card:hover{border-color:rgba(255,255,255,0.14);background:var(--surface-hover)}
+.card-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.card-icon-sm{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-icon-sm svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.card-name{font-size:14px;font-weight:600}
+.card-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.card-body{font-size:12px;color:var(--text-secondary);line-height:1.7}
+.card-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.tag{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:500;border:1px solid var(--border);color:var(--text-muted)}
+
+/* === ALERT CONFIG === */
+.alert-row{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.alert-row:last-child{border-bottom:none}
+.alert-info{display:flex;align-items:center;gap:12px}
+.alert-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.alert-name{font-size:13px;font-weight:500}
+.alert-desc{font-size:11px;color:var(--text-muted);margin-top:2px}
+.alert-methods{display:flex;gap:6px}
+.method-tag{padding:4px 10px;border-radius:var(--radius-sm);font-size:11px;font-weight:500;cursor:pointer;transition:all .2s;border:1px solid var(--border)}
+.method-tag.on{border-color:var(--border-focus);color:var(--accent-bright);background:rgba(10,132,255,0.1)}
+.method-tag.off{color:var(--text-muted);opacity:0.5}
+.method-tag:hover{opacity:1}
+
+/* === TOGGLE SWITCH === */
+.toggle{position:relative;width:40px;height:22px;border-radius:11px;background:rgba(255,255,255,0.1);cursor:pointer;transition:all .3s;flex-shrink:0}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:all .3s}
+.toggle.on{background:var(--accent)}
+.toggle.on::after{left:21px}
+
+/* === PAGINATION === */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-top:1px solid var(--border)}
+.page-info{font-size:12px;color:var(--text-muted)}
+.page-btns{display:flex;gap:4px}
+.page-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);border:1px solid var(--border);cursor:pointer;transition:all .2s;background:none}
+.page-btn:hover{color:var(--text-primary);background:var(--surface-hover)}
+.page-btn.active{color:var(--accent-bright);border-color:var(--border-focus);background:rgba(10,132,255,0.08)}
+.page-btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+/* === MODULE PANELS === */
+.module-panel{display:none}
+.module-panel.active{display:block}
+
+/* === SLIDE-OUT DETAIL PANEL === */
+.panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;opacity:0;pointer-events:none;transition:opacity .3s}
+.panel-overlay.open{opacity:1;pointer-events:auto}
+.detail-panel{position:fixed;top:0;right:0;width:500px;height:100vh;background:var(--bg-panel);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-left:1px solid var(--border);z-index:210;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,0.4)}
+.detail-panel.open{transform:translateX(0)}
+.dp-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border);flex-shrink:0}
+.dp-header-left{display:flex;align-items:center;gap:12px}
+.dp-header-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.dp-header-icon svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.dp-title{font-size:17px;font-weight:700}
+.dp-subtitle{font-size:11px;color:var(--text-muted);margin-top:2px}
+.dp-close{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;border:none;background:none}
+.dp-close:hover{background:var(--surface-hover)}
+.dp-close svg{width:18px;height:18px;stroke:var(--text-muted);stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.dp-body{flex:1;overflow-y:auto;padding:20px 24px}
+.dp-body::-webkit-scrollbar{width:4px}
+.dp-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
+.dp-section{margin-bottom:24px}
+.dp-section-title{font-size:12px;font-weight:600;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.dp-section-title::before{content:'';width:4px;height:14px;border-radius:2px;background:var(--accent)}
+
+.dp-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dp-info-item{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px}
+.dp-info-label{font-size:10px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px}
+.dp-info-value{font-size:14px;font-weight:600;color:var(--text-primary)}
+.dp-info-value.mono{font-family:'Cascadia Code','SF Mono',Consolas,monospace;font-size:13px}
+
+.dp-tree{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:var(--radius);padding:6px 0}
+.dp-tree-item{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;transition:all .15s;font-size:13px;color:var(--text-secondary)}
+.dp-tree-item:hover{background:var(--surface-hover);color:var(--text-primary)}
+.dp-tree-item.active{background:rgba(10,132,255,0.08);color:var(--accent-bright)}
+.dp-tree-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dp-tree-name{flex:1}
+.dp-tree-count{font-size:11px;color:var(--text-muted);font-family:'Cascadia Code','SF Mono',Consolas,monospace}
+.dp-tree-item.child{padding-left:40px}
+.dp-tree-item.child .dp-tree-dot{width:6px;height:6px;border:1.5px solid currentColor;background:none}
+
+.dp-device-bars{display:flex;flex-direction:column;gap:10px}
+.dp-device-row{display:flex;align-items:center;gap:12px}
+.dp-device-label{font-size:12px;color:var(--text-secondary);width:80px;flex-shrink:0}
+.dp-device-track{flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden}
+.dp-device-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.dp-device-val{font-size:11px;font-weight:600;width:40px;text-align:right;flex-shrink:0;font-family:'Cascadia Code','SF Mono',Consolas,monospace}
+
+.dp-form{display:flex;flex-direction:column;gap:12px}
+.dp-form-row{display:flex;align-items:center;gap:12px}
+.dp-form-label{font-size:12px;color:var(--text-muted);width:80px;flex-shrink:0}
+.dp-form-input{flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:var(--text-primary);font-family:var(--font);outline:none;transition:border-color .2s}
+.dp-form-input:focus{border-color:var(--border-focus)}
+.dp-form-select{flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:var(--text-primary);font-family:var(--font);outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23636366' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+
+.dp-actions{display:flex;gap:8px;flex-wrap:wrap}
+.dp-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
+
+/* === CLICK TOAST === */
+.click-toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg-card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:var(--radius);padding:10px 20px;font-size:13px;color:var(--text-primary);opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
+.click-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app" data-component="Resource Management">
+  <!-- TOP NAV -->
+  <nav class="top-nav" data-component="Top Navigation">
+    <div class="nav-brand">
+      <div class="nav-logo"><svg viewBox="0 0 24 24"><path d="M12 2L2 7v6.5c0 5.25 4.25 10.15 10 11.5 5.75-1.35 10-6.25 10-11.5V7L12 2z"/></svg></div>
+      <div><div class="nav-title">平安校园指挥系统</div><div class="nav-subtitle">RESOURCE MGMT · SAFE CAMPUS</div></div>
+    </div>
+    <div class="nav-tabs">
+      <div class="nav-tab" onclick="location.href='campus-map.html'">可视化地图</div>
+      <div class="nav-tab" onclick="location.href='video-wall.html'">视频监控</div>
+      <div class="nav-tab" onclick="location.href='data-cockpit.html'">数据中心</div>
+      <div class="nav-tab" onclick="location.href='smart-search.html'">智能寻踪</div>
+      <div class="nav-tab active">资源管理</div>
+    </div>
+    <div class="nav-info">
+      <div class="nav-weather"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><span>晴 28°C</span></div>
+      <div><div class="nav-time" id="navTime">14:32:08</div><div class="nav-date">2026-06-27 星期五</div></div>
+    </div>
+  </nav>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" data-component="Module Navigation">
+    <div class="sidebar-section">
+      <div class="sidebar-label">配置管理</div>
+      <div class="sidebar-item active" onclick="switchModule(this,'mapConfig')">
+        <svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        地图配置管理
+      </div>
+      <div class="sidebar-item" onclick="switchModule(this,'alertConfig')">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        告警参数配置
+        <span class="item-badge badge-orange">12</span>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">设备管理</div>
+      <div class="sidebar-item" onclick="switchModule(this,'serverMgmt')">
+        <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="6"/></svg>
+        设备服务器管理
+        <span class="item-badge badge-green">5</span>
+      </div>
+      <div class="sidebar-item" onclick="switchModule(this,'batchMgmt')">
+        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        设备批次管理
+      </div>
+      <div class="sidebar-item" onclick="switchModule(this,'tagMgmt')">
+        <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        设备标签管理
+        <span class="item-badge badge-blue">8</span>
+      </div>
+      <div class="sidebar-item" onclick="switchModule(this,'cameraMgmt')">
+        <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        安防摄像机管理
+        <span class="item-badge badge-red">486</span>
+      </div>
+      <div class="sidebar-item" onclick="switchModule(this,'monitorGroup')">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        重点监视组设置
+      </div>
+    </div>
+
+    <div class="sidebar-stats">
+      <div class="stat-card">
+        <div class="stat-label">设备总数</div>
+        <div class="stat-val">1,286<span>台</span></div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:96%;background:var(--green)"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">在线率</div>
+        <div class="stat-val">96.8<span>%</span></div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:96.8%;background:var(--accent)"></div></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content" data-component="Module Content">
+
+    <!-- MODULE 1: 地图配置管理 -->
+    <div class="module-panel active" id="mod-mapConfig">
+      <div class="page-header">
+        <div><div class="page-title">地图配置管理</div><div class="page-desc">校园地理层级规划与分区管理，为可视化地图提供标准化地理基础</div></div>
+        <div class="page-actions"><button class="btn" onclick="showToast('已刷新')"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>刷新</button><button class="btn btn-primary" onclick="showToast('新增区域')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新增区域</button></div>
+      </div>
+      <div class="cards-grid">
+        <div class="config-card" onclick="openZoneDetail('teaching')">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(100,210,255,0.12);color:var(--cyan)"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div><div class="card-name">教学区</div><div class="card-sub">A1-A6 教学楼 · 6 栋建筑</div></div></div>
+          <div class="card-body">覆盖教学楼 A1 至 A6，含 32 间教室、12 间实验室。已标注 86 个摄像头点位、14 个消防设备。</div>
+          <div class="card-tags"><span class="tag">一级区域</span><span class="tag">重点安防</span><span class="tag">86 台设备</span></div>
+        </div>
+        <div class="config-card" onclick="openZoneDetail('dormitory')">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(48,209,88,0.12);color:var(--green)"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div><div class="card-name">宿舍区</div><div class="card-sub">A/B/C 三组宿舍楼 · 12 栋</div></div></div>
+          <div class="card-body">学生宿舍 A/B/C 区共 12 栋，容纳约 8,600 名学生。标注 124 个摄像头、24 个门禁点位。</div>
+          <div class="card-tags"><span class="tag">一级区域</span><span class="tag">124 台设备</span></div>
+        </div>
+        <div class="config-card" onclick="openZoneDetail('sports')">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(255,159,10,0.12);color:var(--orange)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/><line x1="2" y1="12" x2="22" y2="12"/></svg></div><div><div class="card-name">运动区</div><div class="card-sub">运动场 · 体育馆 · 游泳馆</div></div></div>
+          <div class="card-body">包含标准田径场、室内体育馆、游泳馆等大型运动设施，开放时段为 06:00-22:00。</div>
+          <div class="card-tags"><span class="tag">二级区域</span><span class="tag">38 台设备</span></div>
+        </div>
+        <div class="config-card" onclick="openZoneDetail('admin')">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(191,90,242,0.12);color:var(--purple)"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg></div><div><div class="card-name">行政区</div><div class="card-sub">行政楼 · 图书馆 · 会议中心</div></div></div>
+          <div class="card-body">校园核心行政办公区域，含行政楼、图书馆、国际会议中心。52 个监控设备在线。</div>
+          <div class="card-tags"><span class="tag">一级区域</span><span class="tag">核心区域</span><span class="tag">52 台设备</span></div>
+        </div>
+        <div class="config-card" onclick="openZoneDetail('cafeteria')">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(255,214,10,0.12);color:var(--yellow)"><svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div><div><div class="card-name">食堂区</div><div class="card-sub">第一/第二/第三食堂</div></div></div>
+          <div class="card-body">三个食堂服务全校师生，高峰时段 11:30-12:30、17:30-18:30。42 个摄像头覆盖出入口及操作区。</div>
+          <div class="card-tags"><span class="tag">二级区域</span><span class="tag">42 台设备</span></div>
+        </div>
+        <div class="config-card" onclick="openZoneDetail('perimeter')">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(255,69,58,0.12);color:var(--red)"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div class="card-name">周界区域</div><div class="card-sub">校园围墙 · 出入口 · 车闸</div></div></div>
+          <div class="card-body">校园周界防线，含 4 个出入口、2 个车辆闸机。部署 96 路周界监控 + 红外对射报警。</div>
+          <div class="card-tags"><span class="tag">一级区域</span><span class="tag">重点安防</span><span class="tag">96 台设备</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 2: 告警参数配置 -->
+    <div class="module-panel" id="mod-alertConfig">
+      <div class="page-header">
+        <div><div class="page-title">告警参数配置</div><div class="page-desc">自定义各类告警事件的触达方式与通知策略</div></div>
+        <div class="page-actions"><button class="btn" onclick="showToast('已恢复默认配置')">恢复默认</button><button class="btn btn-primary" onclick="showToast('配置已保存')"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>保存配置</button></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="table-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="搜索告警类型..." aria-label="搜索告警类型"></div>
+          <div class="table-filters"><span class="filter-chip active">全部</span><span class="filter-chip" onclick="showToast('筛选安防')">安防</span><span class="filter-chip" onclick="showToast('筛选消防')">消防</span><span class="filter-chip" onclick="showToast('筛选车辆')">车辆</span><span class="filter-chip" onclick="showToast('筛选巡逻')">巡逻</span></div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-info"><div class="alert-dot" style="background:var(--red)"></div><div><div class="alert-name">区域越界警戒</div><div class="alert-desc">检测到人员或物体越过设定的电子围栏区域</div></div></div>
+          <div class="alert-methods"><span class="method-tag on">弹窗提示</span><span class="method-tag on">音频播报</span><span class="method-tag off">短信推送</span><span class="method-tag on">地图标注</span></div>
+          <div class="toggle on" onclick="this.classList.toggle('on');showToast('已切换')"></div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-info"><div class="alert-dot" style="background:var(--red)"></div><div><div class="alert-name">重点人员闯入</div><div class="alert-desc">黑名单人员通过人脸识别进入校园区域</div></div></div>
+          <div class="alert-methods"><span class="method-tag on">弹窗提示</span><span class="method-tag on">音频播报</span><span class="method-tag on">短信推送</span><span class="method-tag on">地图标注</span></div>
+          <div class="toggle on" onclick="this.classList.toggle('on');showToast('已切换')"></div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-info"><div class="alert-dot" style="background:var(--orange)"></div><div><div class="alert-name">烟雾探测报警</div><div class="alert-desc">消防烟感探测器检测到烟雾浓度超标</div></div></div>
+          <div class="alert-methods"><span class="method-tag on">弹窗提示</span><span class="method-tag on">音频播报</span><span class="method-tag on">短信推送</span><span class="method-tag on">地图标注</span></div>
+          <div class="toggle on" onclick="this.classList.toggle('on');showToast('已切换')"></div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-info"><div class="alert-dot" style="background:var(--orange)"></div><div><div class="alert-name">消防水压异常</div><div class="alert-desc">消防水管压力低于或高于安全阈值</div></div></div>
+          <div class="alert-methods"><span class="method-tag on">弹窗提示</span><span class="method-tag off">音频播报</span><span class="method-tag on">短信推送</span><span class="method-tag off">地图标注</span></div>
+          <div class="toggle on" onclick="this.classList.toggle('on');showToast('已切换')"></div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-info"><div class="alert-dot" style="background:var(--yellow)"></div><div><div class="alert-name">高空抛物识别</div><div class="alert-desc">AI 视觉算法检测到疑似高空抛物行为</div></div></div>
+          <div class="alert-methods"><span class="method-tag on">弹窗提示</span><span class="method-tag on">音频播报</span><span class="method-tag off">短信推送</span><span class="method-tag on">地图标注</span></div>
+          <div class="toggle on" onclick="this.classList.toggle('on');showToast('已切换')"></div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-info"><div class="alert-dot" style="background:var(--cyan)"></div><div><div class="alert-name">移动侦测</div><div class="alert-desc">摄像机画面检测到异常运动目标</div></div></div>
+          <div class="alert-methods"><span class="method-tag on">弹窗提示</span><span class="method-tag off">音频播报</span><span class="method-tag off">短信推送</span><span class="method-tag on">地图标注</span></div>
+          <div class="toggle on" onclick="this.classList.toggle('on');showToast('已切换')"></div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-info"><div class="alert-dot" style="background:var(--green)"></div><div><div class="alert-name">黑名单车辆通行</div><div class="alert-desc">车牌识别匹配到黑名单车辆进入校园</div></div></div>
+          <div class="alert-methods"><span class="method-tag on">弹窗提示</span><span class="method-tag on">音频播报</span><span class="method-tag on">短信推送</span><span class="method-tag on">地图标注</span></div>
+          <div class="toggle on" onclick="this.classList.toggle('on');showToast('已切换')"></div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-info"><div class="alert-dot" style="background:var(--purple)"></div><div><div class="alert-name">巡逻一键报警</div><div class="alert-desc">巡逻人员通过终端设备发起紧急报警</div></div></div>
+          <div class="alert-methods"><span class="method-tag on">弹窗提示</span><span class="method-tag on">音频播报</span><span class="method-tag on">短信推送</span><span class="method-tag on">地图标注</span></div>
+          <div class="toggle on" onclick="this.classList.toggle('on');showToast('已切换')"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 3: 设备服务器管理 -->
+    <div class="module-panel" id="mod-serverMgmt">
+      <div class="page-header">
+        <div><div class="page-title">设备服务器管理</div><div class="page-desc">接入并管理各类安防设备服务器，实现设备资源集中纳管</div></div>
+        <div class="page-actions"><button class="btn" onclick="showToast('正在扫描网络...')"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>扫描网络</button><button class="btn btn-primary" onclick="showToast('添加服务器')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加服务器</button></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="table-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="搜索服务器名称或 IP..." aria-label="搜索服务器"></div>
+          <div class="table-filters"><span class="filter-chip active">全部</span><span class="filter-chip">在线</span><span class="filter-chip">离线</span></div>
+        </div>
+        <table>
+          <thead><tr><th>服务器名称</th><th>IP 地址</th><th>品牌</th><th>接入设备</th><th>在线率</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--text-primary);font-weight:500">海康 NVR-主楼</td><td class="mono">192.168.1.100</td><td>海康威视</td><td>128 台摄像机</td><td><span style="color:var(--green)">99.2%</span></td><td><span class="status status-online">在线</span></td><td><span class="action-link" onclick="showToast('查看详情')">详情</span> · <span class="action-link" onclick="showToast('编辑配置')">编辑</span></td></tr>
+            <tr><td style="color:var(--text-primary);font-weight:500">海康 NVR-宿舍</td><td class="mono">192.168.1.101</td><td>海康威视</td><td>96 台摄像机</td><td><span style="color:var(--green)">98.8%</span></td><td><span class="status status-online">在线</span></td><td><span class="action-link" onclick="showToast('查看详情')">详情</span> · <span class="action-link" onclick="showToast('编辑配置')">编辑</span></td></tr>
+            <tr><td style="color:var(--text-primary);font-weight:500">宇视 NVR-周界</td><td class="mono">192.168.2.50</td><td>宇视科技</td><td>64 台摄像机</td><td><span style="color:var(--green)">97.6%</span></td><td><span class="status status-online">在线</span></td><td><span class="action-link" onclick="showToast('查看详情')">详情</span> · <span class="action-link" onclick="showToast('编辑配置')">编辑</span></td></tr>
+            <tr><td style="color:var(--text-primary);font-weight:500">宇视 NVR-食堂</td><td class="mono">192.168.2.51</td><td>宇视科技</td><td>48 台摄像机</td><td><span style="color:var(--orange)">94.1%</span></td><td><span class="status status-warn">异常</span></td><td><span class="action-link" onclick="showToast('查看详情')">详情</span> · <span class="action-link" onclick="showToast('编辑配置')">编辑</span></td></tr>
+            <tr><td style="color:var(--text-primary);font-weight:500">大华 NVR-运动区</td><td class="mono">192.168.3.10</td><td>大华技术</td><td>32 台摄像机</td><td><span style="color:var(--green)">99.5%</span></td><td><span class="status status-online">在线</span></td><td><span class="action-link" onclick="showToast('查看详情')">详情</span> · <span class="action-link" onclick="showToast('编辑配置')">编辑</span></td></tr>
+            <tr><td style="color:var(--text-primary);font-weight:500">消防主机-中控室</td><td class="mono">192.168.4.1</td><td>海湾安全</td><td>1,208 个探测器</td><td><span style="color:var(--green)">99.8%</span></td><td><span class="status status-online">在线</span></td><td><span class="action-link" onclick="showToast('查看详情')">详情</span> · <span class="action-link" onclick="showToast('编辑配置')">编辑</span></td></tr>
+            <tr><td style="color:var(--text-primary);font-weight:500">门禁服务器</td><td class="mono">192.168.5.100</td><td>中控智慧</td><td>326 个门禁点</td><td><span style="color:var(--green)">97.0%</span></td><td><span class="status status-online">在线</span></td><td><span class="action-link" onclick="showToast('查看详情')">详情</span> · <span class="action-link" onclick="showToast('编辑配置')">编辑</span></td></tr>
+            <tr><td style="color:var(--text-primary);font-weight:500">备用 NVR-实验楼</td><td class="mono">192.168.1.105</td><td>海康威视</td><td>0 台</td><td><span style="color:var(--text-muted)">—</span></td><td><span class="status status-offline">离线</span></td><td><span class="action-link" onclick="showToast('查看详情')">详情</span> · <span class="action-link" onclick="showToast('尝试重连')">重连</span></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <div class="page-info">共 8 台服务器 · 在线 7 台 · 异常 1 台 · 离线 1 台</div>
+          <div class="page-btns"><button class="page-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active">1</button><button class="page-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 4: 设备批次管理 -->
+    <div class="module-panel" id="mod-batchMgmt">
+      <div class="page-header">
+        <div><div class="page-title">设备批次管理</div><div class="page-desc">设备全生命周期管理，维保计划制定与到期提醒</div></div>
+        <div class="page-actions"><button class="btn btn-primary" onclick="showToast('新增批次')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新增批次</button></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="table-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="搜索批次编号或名称..." aria-label="搜索批次"></div>
+          <div class="table-filters"><span class="filter-chip active">全部</span><span class="filter-chip">维保中</span><span class="filter-chip">即将到期</span><span class="filter-chip">已过期</span></div>
+        </div>
+        <table>
+          <thead><tr><th>批次编号</th><th>批次名称</th><th>设备类型</th><th>数量</th><th>购入时间</th><th>维保到期</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">B2024-001</td><td style="color:var(--text-primary);font-weight:500">2024年教学区球机采购</td><td>球型摄像机</td><td>86 台</td><td>2024-01-15</td><td>2027-01-15</td><td><span class="status status-online">维保中</span></td><td><span class="action-link" onclick="showToast('查看详情')">详情</span></td></tr>
+            <tr><td class="mono">B2024-002</td><td style="color:var(--text-primary);font-weight:500">2024年宿舍区枪机采购</td><td>枪型摄像机</td><td>124 台</td><td>2024-03-08</td><td>2027-03-08</td><td><span class="status status-online">维保中</span></td><td><span class="action-link" onclick="showToast('查看详情')">详情</span></td></tr>
+            <tr><td class="mono">B2023-005</td><td style="color:var(--text-primary);font-weight:500">2023年周界红外报警</td><td>红外对射</td><td>96 套</td><td>2023-06-20</td><td>2026-06-20</td><td><span class="status status-warn">即将到期</span></td><td><span class="action-link" onclick="showToast('续保')">续保</span> · <span class="action-link" onclick="showToast('查看详情')">详情</span></td></tr>
+            <tr><td class="mono">B2023-003</td><td style="color:var(--text-primary);font-weight:500">2023年消防烟感升级</td><td>烟感探测器</td><td>400 个</td><td>2023-02-10</td><td>2026-02-10</td><td><span class="status status-offline">已过期</span></td><td><span class="action-link" onclick="showToast('续保')">续保</span> · <span class="action-link" onclick="showToast('查看详情')">详情</span></td></tr>
+            <tr><td class="mono">B2025-001</td><td style="color:var(--text-primary);font-weight:500">2025年门禁系统升级</td><td>人脸识别终端</td><td>50 台</td><td>2025-01-20</td><td>2028-01-20</td><td><span class="status status-online">维保中</span></td><td><span class="action-link" onclick="showToast('查看详情')">详情</span></td></tr>
+            <tr><td class="mono">B2022-008</td><td style="color:var(--text-primary);font-weight:500">2022年道路卡口系统</td><td>车牌识别相机</td><td>24 台</td><td>2022-09-01</td><td>2025-09-01</td><td><span class="status status-offline">已过期</span></td><td><span class="action-link" onclick="showToast('续保')">续保</span> · <span class="action-link" onclick="showToast('查看详情')">详情</span></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <div class="page-info">共 6 个批次 · 维保中 3 · 即将到期 1 · 已过期 2</div>
+          <div class="page-btns"><button class="page-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active">1</button><button class="page-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 5: 设备标签管理 -->
+    <div class="module-panel" id="mod-tagMgmt">
+      <div class="page-header">
+        <div><div class="page-title">设备标签管理</div><div class="page-desc">自定义设备标签，实现分类标识与快速筛选</div></div>
+        <div class="page-actions"><button class="btn btn-primary" onclick="showToast('新增标签')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新增标签</button></div>
+      </div>
+      <div class="cards-grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">
+        <div class="config-card">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(100,210,255,0.12);color:var(--cyan)"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div><div><div class="card-name">重点安防</div><div class="card-sub">绑定 186 台设备</div></div></div>
+          <div class="card-body">用于标记校园重点安防区域的设备，触发高级别告警响应。</div>
+          <div class="card-tags"><span class="tag" style="border-color:rgba(100,210,255,0.3);color:var(--cyan)">安防</span><span class="tag" style="border-color:rgba(100,210,255,0.3);color:var(--cyan)">高优先级</span></div>
+        </div>
+        <div class="config-card">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(255,69,58,0.12);color:var(--red)"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div><div><div class="card-name">消防设备</div><div class="card-sub">绑定 1,208 台设备</div></div></div>
+          <div class="card-body">所有消防相关设备的统一标签，含烟感、温感、水压探测器等。</div>
+          <div class="card-tags"><span class="tag" style="border-color:rgba(255,69,58,0.3);color:var(--red)">消防</span></div>
+        </div>
+        <div class="config-card">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(48,209,88,0.12);color:var(--green)"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div><div><div class="card-name">出入口</div><div class="card-sub">绑定 42 台设备</div></div></div>
+          <div class="card-body">校园各出入口部署的人脸识别与车牌识别设备。</div>
+          <div class="card-tags"><span class="tag" style="border-color:rgba(48,209,88,0.3);color:var(--green)">通行</span></div>
+        </div>
+        <div class="config-card">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(255,159,10,0.12);color:var(--orange)"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div><div><div class="card-name">道路监控</div><div class="card-sub">绑定 68 台设备</div></div></div>
+          <div class="card-body">校园主干道、环路、停车场等交通场景的监控设备。</div>
+          <div class="card-tags"><span class="tag" style="border-color:rgba(255,159,10,0.3);color:var(--orange)">交通</span></div>
+        </div>
+        <div class="config-card">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(191,90,242,0.12);color:var(--purple)"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div><div><div class="card-name">高空抛物</div><div class="card-sub">绑定 36 台设备</div></div></div>
+          <div class="card-body">宿舍楼、教学楼外墙部署的仰拍相机，用于高空抛物监测。</div>
+          <div class="card-tags"><span class="tag" style="border-color:rgba(191,90,242,0.3);color:var(--purple)">AI识别</span></div>
+        </div>
+        <div class="config-card">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(255,214,10,0.12);color:var(--yellow)"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div><div><div class="card-name">门禁终端</div><div class="card-sub">绑定 326 台设备</div></div></div>
+          <div class="card-body">校园各楼栋门禁刷卡/人脸识别终端设备。</div>
+          <div class="card-tags"><span class="tag" style="border-color:rgba(255,214,10,0.3);color:var(--yellow)">门禁</span></div>
+        </div>
+        <div class="config-card">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(10,132,255,0.12);color:var(--accent)"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div><div><div class="card-name">待检修</div><div class="card-sub">绑定 18 台设备</div></div></div>
+          <div class="card-body">已标记需要安排检修维护的设备，运维人员优先处理。</div>
+          <div class="card-tags"><span class="tag" style="border-color:rgba(10,132,255,0.3);color:var(--accent)">运维</span><span class="tag" style="border-color:rgba(255,69,58,0.3);color:var(--red)">紧急</span></div>
+        </div>
+        <div class="config-card">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(255,255,255,0.06);color:var(--text-muted)"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div><div><div class="card-name">已报废</div><div class="card-sub">绑定 7 台设备</div></div></div>
+          <div class="card-body">已报废下架的设备，保留历史记录用于资产管理审计。</div>
+          <div class="card-tags"><span class="tag">资产</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 6: 安防摄像机管理 -->
+    <div class="module-panel" id="mod-cameraMgmt">
+      <div class="page-header">
+        <div><div class="page-title">安防摄像机管理</div><div class="page-desc">跨品牌摄像机资源集中管控，设备状态监测与信息维护</div></div>
+        <div class="page-actions"><button class="btn" onclick="showToast('批量导入')"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>批量导入</button><button class="btn btn-primary" onclick="showToast('添加摄像机')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加摄像机</button></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="table-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="搜索设备名称、编号或 IP..." aria-label="搜索摄像机"></div>
+          <div class="table-filters"><span class="filter-chip active">全部 486</span><span class="filter-chip">海康 224</span><span class="filter-chip">宇视 168</span><span class="filter-chip">大华 94</span></div>
+        </div>
+        <table>
+          <thead><tr><th>设备编号</th><th>设备名称</th><th>品牌/型号</th><th>IP 地址</th><th>所属区域</th><th>类型</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">CAM-S01</td><td style="color:var(--text-primary);font-weight:500">南门入口球机</td><td>海康 DS-2DE4A425</td><td class="mono">192.168.10.1</td><td>周界区域</td><td>球机</td><td><span class="status status-online">在线</span></td><td><span class="action-link" onclick="showToast('预览画面')">预览</span> · <span class="action-link" onclick="showToast('编辑')">编辑</span></td></tr>
+            <tr><td class="mono">CAM-S02</td><td style="color:var(--text-primary);font-weight:500">南门车道枪机</td><td>海康 DS-2CD2T47</td><td class="mono">192.168.10.2</td><td>周界区域</td><td>枪机</td><td><span class="status status-online">在线</span></td><td><span class="action-link" onclick="showToast('预览画面')">预览</span> · <span class="action-link" onclick="showToast('编辑')">编辑</span></td></tr>
+            <tr><td class="mono">CAM-R03</td><td style="color:var(--text-primary);font-weight:500">主干道中段</td><td>宇视 IPC-B214</td><td class="mono">192.168.10.13</td><td>教学区</td><td>枪机</td><td><span class="status status-online">在线</span></td><td><span class="action-link" onclick="showToast('预览画面')">预览</span> · <span class="action-link" onclick="showToast('编辑')">编辑</span></td></tr>
+            <tr><td class="mono">CAM-L02</td><td style="color:var(--text-primary);font-weight:500">图书馆广场全景</td><td>大华 DH-IPC-HFW5442</td><td class="mono">192.168.10.28</td><td>行政区</td><td>全景</td><td><span class="status status-online">在线</span></td><td><span class="action-link" onclick="showToast('预览画面')">预览</span> · <span class="action-link" onclick="showToast('编辑')">编辑</span></td></tr>
+            <tr><td class="mono">CAM-A101</td><td style="color:var(--text-primary);font-weight:500">A1教学楼 1F 大厅</td><td>海康 DS-2CD2143</td><td class="mono">192.168.10.41</td><td>教学区</td><td>半球</td><td><span class="status status-online">在线</span></td><td><span class="action-link" onclick="showToast('预览画面')">预览</span> · <span class="action-link" onclick="showToast('编辑')">编辑</span></td></tr>
+            <tr><td class="mono">CAM-F01</td><td style="color:var(--text-primary);font-weight:500">食堂入口</td><td>宇视 IPC3614</td><td class="mono">192.168.10.55</td><td>食堂区</td><td>枪机</td><td><span class="status status-online">在线</span></td><td><span class="action-link" onclick="showToast('预览画面')">预览</span> · <span class="action-link" onclick="showToast('编辑')">编辑</span></td></tr>
+            <tr><td class="mono">CAM-E05</td><td style="color:var(--text-primary);font-weight:500">实验楼前</td><td>海康 DS-2CD2T47</td><td class="mono">192.168.10.78</td><td>教学区</td><td>枪机</td><td><span class="status status-warn">信号弱</span></td><td><span class="action-link" onclick="showToast('预览画面')">预览</span> · <span class="action-link" onclick="showToast('诊断')">诊断</span></td></tr>
+            <tr><td class="mono">CAM-B01</td><td style="color:var(--text-primary);font-weight:500">宿舍区B入口</td><td>大华 DH-IPC-HDW2431</td><td class="mono">192.168.10.91</td><td>宿舍区</td><td>半球</td><td><span class="status status-offline">离线</span></td><td><span class="action-link" onclick="showToast('诊断')">诊断</span> · <span class="action-link" onclick="showToast('报修')">报修</span></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <div class="page-info">共 486 台 · 在线 462 · 异常 16 · 离线 8</div>
+          <div class="page-btns"><button class="page-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><button class="page-btn active">1</button><button class="page-btn">2</button><button class="page-btn">3</button><button class="page-btn">...</button><button class="page-btn">49</button><button class="page-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 7: 重点监视组设置 -->
+    <div class="module-panel" id="mod-monitorGroup">
+      <div class="page-header">
+        <div><div class="page-title">重点监视组设置</div><div class="page-desc">自定义摄像机分组，在可视化地图中快速查看对应监视组资源</div></div>
+        <div class="page-actions"><button class="btn btn-primary" onclick="showToast('新建监视组')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建监视组</button></div>
+      </div>
+      <div class="cards-grid">
+        <div class="config-card" onclick="showToast('进入南门监视组')">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(255,69,58,0.12);color:var(--red)"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><div><div class="card-name">南门出入口组</div><div class="card-sub">高优先级 · 8 路摄像机</div></div></div>
+          <div class="card-body">覆盖南门人行通道、车辆通道、闸机区域，24小时不间断监控。含 2 路球机 + 4 路枪机 + 2 路车牌识别。</div>
+          <div class="card-tags"><span class="tag" style="border-color:rgba(255,69,58,0.3);color:var(--red)">出入口</span><span class="tag">24h 录像</span><span class="tag">8 路</span></div>
+        </div>
+        <div class="config-card" onclick="showToast('进入宿舍监视组')">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(255,159,10,0.12);color:var(--orange)"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><div><div class="card-name">宿舍楼高空抛物组</div><div class="card-sub">AI 监测 · 36 路摄像机</div></div></div>
+          <div class="card-body">A/B/C 区 12 栋宿舍楼外墙仰拍相机，配合 AI 算法实时检测高空抛物行为，自动截图告警。</div>
+          <div class="card-tags"><span class="tag" style="border-color:rgba(255,159,10,0.3);color:var(--orange)">AI识别</span><span class="tag">36 路</span></div>
+        </div>
+        <div class="config-card" onclick="showToast('进入周界监视组')">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(100,210,255,0.12);color:var(--cyan)"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><div><div class="card-name">周界防线组</div><div class="card-sub">重点安防 · 96 路摄像机</div></div></div>
+          <div class="card-body">校园围墙沿线全覆盖，配合红外对射报警系统，检测非法翻越行为。</div>
+          <div class="card-tags"><span class="tag" style="border-color:rgba(100,210,255,0.3);color:var(--cyan)">周界</span><span class="tag">红外联动</span><span class="tag">96 路</span></div>
+        </div>
+        <div class="config-card" onclick="showToast('进入食堂监视组')">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(48,209,88,0.12);color:var(--green)"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><div><div class="card-name">食堂明厨亮灶组</div><div class="card-sub">食品安全 · 42 路摄像机</div></div></div>
+          <div class="card-body">三个食堂后厨操作区、就餐区、出入口全覆盖，满足明厨亮灶监管要求。</div>
+          <div class="card-tags"><span class="tag" style="border-color:rgba(48,209,88,0.3);color:var(--green)">食品安全</span><span class="tag">42 路</span></div>
+        </div>
+        <div class="config-card" onclick="showToast('进入停车场监视组')">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(191,90,242,0.12);color:var(--purple)"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><div><div class="card-name">停车场监控组</div><div class="card-sub">车辆管理 · 28 路摄像机</div></div></div>
+          <div class="card-body">地上/地下停车场全覆盖，含车位监控、出入口车牌识别、通道监控。</div>
+          <div class="card-tags"><span class="tag" style="border-color:rgba(191,90,242,0.3);color:var(--purple)">车辆</span><span class="tag">28 路</span></div>
+        </div>
+        <div class="config-card" onclick="showToast('进入道路监视组')">
+          <div class="card-head"><div class="card-icon-sm" style="background:rgba(255,214,10,0.12);color:var(--yellow)"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><div><div class="card-name">校园道路卡口组</div><div class="card-sub">交通管理 · 24 路摄像机</div></div></div>
+          <div class="card-body">校园主干道关键节点部署，支持车速检测、违停抓拍、车流量统计。</div>
+          <div class="card-tags"><span class="tag" style="border-color:rgba(255,214,10,0.3);color:var(--yellow)">交通</span><span class="tag">24 路</span></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ZONE DETAIL SLIDE-OUT PANEL -->
+  <div class="panel-overlay" id="panelOverlay" onclick="closeZoneDetail()"></div>
+  <div class="detail-panel" id="detailPanel">
+    <div class="dp-header">
+      <div class="dp-header-left">
+        <div class="dp-header-icon" id="dpIcon"></div>
+        <div><div class="dp-title" id="dpTitle"></div><div class="dp-subtitle" id="dpSubtitle"></div></div>
+      </div>
+      <button class="dp-close" onclick="closeZoneDetail()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="dp-body" id="dpBody"></div>
+    <div class="dp-footer">
+      <button class="btn btn-primary" onclick="showToast('区域配置已保存')"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>保存配置</button>
+      <button class="btn" onclick="showToast('已跳转到地图定位')"><svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg>地图定位</button>
+      <button class="btn" style="margin-left:auto;color:var(--red);border-color:rgba(255,69,58,0.3)" onclick="showToast('确认删除区域？')">删除区域</button>
+    </div>
+  </div>
+</div>
+
+<div class="click-toast" id="clickToast"></div>
+<script>
+function updateClock(){const n=new Date(),h=String(n.getHours()).padStart(2,'0'),m=String(n.getMinutes()).padStart(2,'0'),s=String(n.getSeconds()).padStart(2,'0');document.getElementById('navTime').textContent=`${h}:${m}:${s}`;const d=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];document.querySelectorAll('.nav-date').forEach(el=>{el.textContent=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')} ${d[n.getDay()]}`});}
+setInterval(updateClock,1000);
+
+function switchModule(item,moduleId){
+  document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));
+  item.classList.add('active');
+  document.querySelectorAll('.module-panel').forEach(p=>p.classList.remove('active'));
+  var panel=document.getElementById('mod-'+moduleId);
+  if(panel) panel.classList.add('active');
+}
+
+let toastTimer;
+function showToast(msg){const el=document.getElementById('clickToast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2000);}
+
+/* === ZONE DETAIL DATA === */
+var zones = {
+  teaching: {
+    name:'教学区', sub:'A1-A6 教学楼 · 6 栋建筑',
+    color:'var(--cyan)', bgColor:'rgba(100,210,255,0.12)',
+    icon:'<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+    level:'一级区域', status:'启用', hours:'06:00 - 22:30', patrol:'每 2 小时',
+    children:[
+      {name:'A1 教学楼',devices:18,floors:5},
+      {name:'A2 教学楼',devices:16,floors:5},
+      {name:'A3 实验楼',devices:14,floors:4},
+      {name:'A4 实验楼',devices:12,floors:4},
+      {name:'A5 综合教学楼',devices:15,floors:6},
+      {name:'A6 报告厅',devices:11,floors:3}
+    ],
+    devices:{cameras:86,fire:14,access:12,alarm:8},
+    deviceRate:{cameras:98.8,fire:100,access:97.2,alarm:100}
+  },
+  dormitory: {
+    name:'宿舍区', sub:'A/B/C 三组宿舍楼 · 12 栋',
+    color:'var(--green)', bgColor:'rgba(48,209,88,0.12)',
+    icon:'<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+    level:'一级区域', status:'启用', hours:'全天 24 小时', patrol:'每 1 小时',
+    children:[
+      {name:'A 区（1-4 号楼）',devices:38,floors:6},
+      {name:'B 区（5-8 号楼）',devices:42,floors:6},
+      {name:'C 区（9-12 号楼）',devices:44,floors:7}
+    ],
+    devices:{cameras:124,fire:36,access:24,alarm:12},
+    deviceRate:{cameras:97.5,fire:100,access:96.8,alarm:100}
+  },
+  sports: {
+    name:'运动区', sub:'运动场 · 体育馆 · 游泳馆',
+    color:'var(--orange)', bgColor:'rgba(255,159,10,0.12)',
+    icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>',
+    level:'二级区域', status:'启用', hours:'06:00 - 22:00', patrol:'每 4 小时',
+    children:[
+      {name:'标准田径场',devices:14,floors:0},
+      {name:'室内体育馆',devices:16,floors:2},
+      {name:'游泳馆',devices:8,floors:1}
+    ],
+    devices:{cameras:38,fire:6,access:4,alarm:2},
+    deviceRate:{cameras:100,fire:100,access:100,alarm:100}
+  },
+  admin: {
+    name:'行政区', sub:'行政楼 · 图书馆 · 会议中心',
+    color:'var(--purple)', bgColor:'rgba(191,90,242,0.12)',
+    icon:'<svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/></svg>',
+    level:'一级区域', status:'启用', hours:'07:30 - 18:00', patrol:'每 3 小时',
+    children:[
+      {name:'行政楼',devices:22,floors:8},
+      {name:'图书馆',devices:18,floors:5},
+      {name:'国际会议中心',devices:12,floors:3}
+    ],
+    devices:{cameras:52,fire:18,access:16,alarm:6},
+    deviceRate:{cameras:99.2,fire:100,access:98.5,alarm:100}
+  },
+  cafeteria: {
+    name:'食堂区', sub:'第一/第二/第三食堂',
+    color:'var(--yellow)', bgColor:'rgba(255,214,10,0.12)',
+    icon:'<svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg>',
+    level:'二级区域', status:'启用', hours:'06:30 - 21:00', patrol:'每 2 小时',
+    children:[
+      {name:'第一食堂',devices:16,floors:2},
+      {name:'第二食堂',devices:14,floors:2},
+      {name:'第三食堂',devices:12,floors:2}
+    ],
+    devices:{cameras:42,fire:12,access:6,alarm:4},
+    deviceRate:{cameras:97.6,fire:100,access:100,alarm:100}
+  },
+  perimeter: {
+    name:'周界区域', sub:'校园围墙 · 出入口 · 车闸',
+    color:'var(--red)', bgColor:'rgba(255,69,58,0.12)',
+    icon:'<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+    level:'一级区域', status:'启用', hours:'全天 24 小时', patrol:'每 30 分钟',
+    children:[
+      {name:'南门（人行 + 车行）',devices:28,floors:0},
+      {name:'北门（人行 + 车行）',devices:24,floors:0},
+      {name:'东侧围墙',devices:22,floors:0},
+      {name:'西侧围墙',devices:22,floors:0}
+    ],
+    devices:{cameras:96,fire:0,access:8,alarm:48},
+    deviceRate:{cameras:99.0,fire:0,access:97.5,alarm:98.2}
+  }
+};
+
+function openZoneDetail(zoneId){
+  var z = zones[zoneId];
+  if(!z) return;
+  document.getElementById('dpIcon').style.background = z.bgColor;
+  document.getElementById('dpIcon').style.color = z.color;
+  document.getElementById('dpIcon').innerHTML = z.icon;
+  document.getElementById('dpTitle').textContent = z.name;
+  document.getElementById('dpSubtitle').textContent = z.sub;
+
+  var totalDevices = z.devices.cameras + z.devices.fire + z.devices.access + z.devices.alarm;
+  var html = '';
+
+  /* Section 1: Basic Info */
+  html += '<div class="dp-section">';
+  html += '<div class="dp-section-title">基本信息</div>';
+  html += '<div class="dp-info-grid">';
+  html += '<div class="dp-info-item"><div class="dp-info-label">安防等级</div><div class="dp-info-value">'+z.level+'</div></div>';
+  html += '<div class="dp-info-item"><div class="dp-info-label">区域状态</div><div class="dp-info-value" style="color:var(--green)">'+z.status+'</div></div>';
+  html += '<div class="dp-info-item"><div class="dp-info-label">开放时段</div><div class="dp-info-value" style="font-size:12px">'+z.hours+'</div></div>';
+  html += '<div class="dp-info-item"><div class="dp-info-label">巡逻频次</div><div class="dp-info-value" style="font-size:12px">'+z.patrol+'</div></div>';
+  html += '<div class="dp-info-item"><div class="dp-info-label">子区域数</div><div class="dp-info-value mono">'+z.children.length+'</div></div>';
+  html += '<div class="dp-info-item"><div class="dp-info-label">设备总数</div><div class="dp-info-value mono">'+totalDevices+'</div></div>';
+  html += '</div></div>';
+
+  /* Section 2: Hierarchy Tree */
+  html += '<div class="dp-section">';
+  html += '<div class="dp-section-title">层级结构</div>';
+  html += '<div class="dp-tree">';
+  html += '<div class="dp-tree-item active"><div class="dp-tree-dot" style="background:'+z.color+'"></div><div class="dp-tree-name">'+z.name+'</div><div class="dp-tree-count">'+z.children.length+' 子区域</div></div>';
+  for(var i=0;i<z.children.length;i++){
+    var c = z.children[i];
+    html += '<div class="dp-tree-item child" onclick="showToast(\'选中 '+c.name+'\')"><div class="dp-tree-dot"></div><div class="dp-tree-name">'+c.name+'</div><div class="dp-tree-count">'+c.devices+' 台'+(c.floors>0?' · '+c.floors+'F':'')+'</div></div>';
+  }
+  html += '</div></div>';
+
+  /* Section 3: Device Statistics */
+  html += '<div class="dp-section">';
+  html += '<div class="dp-section-title">关联设备</div>';
+  html += '<div class="dp-device-bars">';
+  var deviceTypes = [
+    {key:'cameras',label:'摄像头',color:'var(--cyan)'},
+    {key:'fire',label:'消防设备',color:'var(--red)'},
+    {key:'access',label:'门禁点位',color:'var(--green)'},
+    {key:'alarm',label:'报警设备',color:'var(--orange)'}
+  ];
+  for(var i=0;i<deviceTypes.length;i++){
+    var dt = deviceTypes[i];
+    var count = z.devices[dt.key];
+    var rate = z.deviceRate[dt.key];
+    if(count === 0) continue;
+    html += '<div class="dp-device-row"><div class="dp-device-label">'+dt.label+'</div><div class="dp-device-track"><div class="dp-device-fill" style="width:'+rate+'%;background:'+dt.color+'"></div></div><div class="dp-device-val" style="color:'+dt.color+'">'+rate+'%</div></div>';
+  }
+  html += '</div></div>';
+
+  /* Section 4: Zone Properties */
+  html += '<div class="dp-section">';
+  html += '<div class="dp-section-title">区域属性配置</div>';
+  html += '<div class="dp-form">';
+  html += '<div class="dp-form-row"><div class="dp-form-label">区域名称</div><input class="dp-form-input" value="'+z.name+'" aria-label="区域名称"></div>';
+  html += '<div class="dp-form-row"><div class="dp-form-label">安防等级</div><select class="dp-form-select" aria-label="安防等级"><option'+(z.level==='一级区域'?' selected':'')+'>一级区域</option><option'+(z.level==='二级区域'?' selected':'')+'>二级区域</option><option>三级区域</option></select></div>';
+  html += '<div class="dp-form-row"><div class="dp-form-label">开放时段</div><input class="dp-form-input" value="'+z.hours+'" aria-label="开放时段"></div>';
+  html += '<div class="dp-form-row"><div class="dp-form-label">巡逻频次</div><select class="dp-form-select" aria-label="巡逻频次"><option>每 30 分钟</option><option>每 1 小时</option><option'+(z.patrol==='每 2 小时'?' selected':'')+'>每 2 小时</option><option'+(z.patrol==='每 3 小时'?' selected':'')+'>每 3 小时</option><option'+(z.patrol==='每 4 小时'?' selected':'')+'>每 4 小时</option></select></div>';
+  html += '<div class="dp-form-row"><div class="dp-form-label">备注</div><input class="dp-form-input" placeholder="输入备注信息..." aria-label="备注"></div>';
+  html += '</div></div>';
+
+  document.getElementById('dpBody').innerHTML = html;
+  document.getElementById('panelOverlay').classList.add('open');
+  document.getElementById('detailPanel').classList.add('open');
+}
+
+function closeZoneDetail(){
+  document.getElementById('panelOverlay').classList.remove('open');
+  document.getElementById('detailPanel').classList.remove('open');
+}
+</script>
+</body>
+</html>
