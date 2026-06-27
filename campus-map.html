@@ -846,7 +846,7 @@ scene.fog=new THREE.FogExp2(0x08090a,0.0006);
 
 /* ===== Camera ===== */
 var camera=new THREE.PerspectiveCamera(38,W/H,1,3000);
-camera.position.set(0,-322,383);
+camera.position.set(0,-435,275);
 
 /* ===== CSS2D Label Renderer ===== */
 var labelRenderer=null;
@@ -909,7 +909,7 @@ function mkWallMat(alpha,topZ,botZ){
 var mapGroup=null,mapW=620,mapH=420,mapPad=28;
 var projScale=1,offX=0,offY=0;
 var lonMin=1e9,latMin=1e9,lonMax=-1e9,latMax=-1e9;
-var TOP_Z=28,BOT_Z=10;
+var TOP_Z=48,BOT_Z=10;
 var distMeshes=[],topMats=[],wallMats=[],hlMats=[];
 var liftMap=new Map(),allLifts=[];
 var flyMats=[],chaseSegs=[],chasePath=null;
