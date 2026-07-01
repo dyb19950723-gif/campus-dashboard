@@ -106,6 +106,14 @@ html, body {
 .face-preview { position:absolute; inset:0; object-fit:cover; width:100%; height:100%; display:none; }
 .face-upload.has-image .face-preview { display:block; }
 .face-upload.has-image svg, .face-upload.has-image .face-upload-text, .face-upload.has-image .face-upload-hint { display:none; }
+.face-clear { position:absolute; top:6px; right:6px; z-index:5; width:24px; height:24px; border-radius:50%; background:rgba(0,0,0,0.55); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.15); display:none; align-items:center; justify-content:center; cursor:pointer; transition:background 0.15s; }
+.face-clear:hover { background:rgba(255,69,58,0.7); }
+.face-clear svg { width:12px; height:12px; stroke:var(--text-primary); fill:none; stroke-width:2; display:block; }
+.face-upload.has-image .face-clear { display:flex; }
+.face-reupload { position:absolute; inset:0; z-index:4; background:rgba(0,0,0,0.5); backdrop-filter:blur(2px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; opacity:0; transition:opacity 0.2s; pointer-events:none; border-radius:8px; }
+.face-reupload svg { width:22px; height:22px; stroke:var(--text-primary); fill:none; stroke-width:1.6; }
+.face-reupload span { font-size:11px; color:var(--text-primary); font-weight:500; }
+.face-upload.has-image:hover .face-reupload { opacity:1; }
 .face-match-ring { position:absolute; inset:4px; border-radius:8px; border:2px solid var(--green); display:none; }
 .face-upload.matched .face-match-ring { display:block; animation:matchPulse 2s ease-in-out infinite; }
 @keyframes matchPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
@@ -295,10 +303,19 @@ html, body {
 
       <!-- Person mode -->
       <div id="personSearch">
-        <div class="face-upload matched" id="faceUpload" onclick="showToast('已上传人脸图片，正在检索...')">
+        <input type="file" id="faceFileInput" accept="image/jpeg,image/png" style="display:none" onchange="handleFaceUpload(this)">
+        <div class="face-upload" id="faceUpload" onclick="document.getElementById('faceFileInput').click()">
           <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           <span class="face-upload-text">点击上传人脸照片</span>
           <span class="face-upload-hint">支持 JPG / PNG，正面免冠照最佳</span>
+          <img class="face-preview" id="facePreview" alt="人脸预览">
+          <div class="face-clear" onclick="event.stopPropagation();clearFaceUpload()" title="清除照片">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </div>
+          <div class="face-reupload">
+            <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            <span>点击重新上传</span>
+          </div>
           <div class="face-match-ring"></div>
         </div>
         <div class="search-divider"><span>或通过姓名 / 工号查找</span></div>
@@ -736,6 +753,30 @@ function setMode(btn,mode){
   document.getElementById('personDetail').style.display=isP?'':'none';
   document.getElementById('vehicleDetail').style.display=isP?'none':'';
   showToast(isP?'人员寻踪模式':'车辆寻踪模式');
+}
+
+function handleFaceUpload(input){
+  if(!input.files||!input.files[0])return;
+  var file=input.files[0];
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var preview=document.getElementById('facePreview');
+    var box=document.getElementById('faceUpload');
+    preview.src=e.target.result;
+    box.classList.add('has-image','matched');
+    showToast('已上传人脸图片，正在检索…');
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearFaceUpload(){
+  var preview=document.getElementById('facePreview');
+  var box=document.getElementById('faceUpload');
+  var input=document.getElementById('faceFileInput');
+  preview.src='';
+  box.classList.remove('has-image','matched');
+  input.value='';
+  showToast('已清除照片，可重新上传');
 }
 
 function doSearch(){
