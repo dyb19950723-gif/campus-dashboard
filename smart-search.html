@@ -110,6 +110,20 @@ html, body {
 .face-upload.matched .face-match-ring { display:block; animation:matchPulse 2s ease-in-out infinite; }
 @keyframes matchPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
+/* Name / ID text search */
+.search-divider { display:flex; align-items:center; gap:10px; margin:14px 0; }
+.search-divider::before, .search-divider::after { content:''; flex:1; height:1px; background:var(--border-standard); }
+.search-divider span { font-size:11px; color:var(--text-faint); white-space:nowrap; }
+.name-search-wrap { margin-bottom:12px; }
+.name-search-row { display:flex; gap:6px; }
+.name-search-input { flex:1; padding:9px 12px; background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:8px; color:var(--text-primary); font-size:13px; font-family:var(--font-body); outline:none; transition:border-color 0.2s; }
+.name-search-input::placeholder { color:var(--text-faint); }
+.name-search-input:focus { border-color:var(--accent); }
+.name-search-go { width:36px; height:36px; border-radius:8px; background:var(--accent); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.15s; flex-shrink:0; }
+.name-search-go:hover { background:var(--accent-hover); }
+.name-search-go svg { width:16px; height:16px; stroke:var(--text-on-accent); fill:none; stroke-width:2; }
+.name-search-hint { font-size:10px; color:var(--text-faint); margin-top:6px; opacity:0.7; }
+
 /* License plate input */
 .plate-input-wrap { margin-bottom:12px; }
 .plate-input { width:100%; padding:12px 14px; background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:8px; color:var(--text-primary); font-size:18px; font-family:var(--font-mono); font-weight:600; letter-spacing:0.1em; text-align:center; text-transform:uppercase; outline:none; transition:border-color 0.2s; }
@@ -286,6 +300,16 @@ html, body {
           <span class="face-upload-text">点击上传人脸照片</span>
           <span class="face-upload-hint">支持 JPG / PNG，正面免冠照最佳</span>
           <div class="face-match-ring"></div>
+        </div>
+        <div class="search-divider"><span>或通过姓名 / 工号查找</span></div>
+        <div class="name-search-wrap">
+          <div class="name-search-row">
+            <input class="name-search-input" type="text" id="nameSearchInput" placeholder="输入姓名或工号搜索" aria-label="输入姓名或工号搜索" onkeydown="if(event.key==='Enter')doNameSearch()">
+            <button class="name-search-go" onclick="doNameSearch()" aria-label="搜索">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+          </div>
+          <div class="name-search-hint">支持模糊搜索，如"张明远"或"T20187"</div>
         </div>
       </div>
 
@@ -715,7 +739,21 @@ function setMode(btn,mode){
 }
 
 function doSearch(){
-  showToast('检索完成：发现 23 条抓拍记录');
+  var nameVal=document.getElementById('nameSearchInput').value.trim();
+  if(nameVal){
+    showToast('正在检索"'+nameVal+'"的校园轨迹… 发现 23 条抓拍记录');
+  } else {
+    showToast('检索完成：发现 23 条抓拍记录');
+  }
+}
+
+function doNameSearch(){
+  var nameVal=document.getElementById('nameSearchInput').value.trim();
+  if(!nameVal){
+    showToast('请输入姓名或工号');
+    return;
+  }
+  showToast('正在检索"'+nameVal+'"… 发现 23 条抓拍记录');
 }
 
 function selectResult(card,idx){
