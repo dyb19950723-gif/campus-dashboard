@@ -9,19 +9,19 @@
 <title>数据大屏 - 平安校园指挥系统</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --seed-bg: #08090a; --seed-fg: #f7f8f8; --seed-primary: #0071e3; --seed-accent: #2997ff; --seed-surface: #0f1011; --seed-radius: 10px;
-  --bg-deep: #08090a; --bg-panel: #0f1011; --bg-elevated: #191a1b; --bg-surface: #28282c;
-  --text-primary: #f7f8f8; --text-secondary: #d0d6e0; --text-muted: #8a8f98; --text-faint: #62666d;
-  --accent: #0071e3; --accent-bright: #2997ff; --green: #30d158; --red: #ff453a; --yellow: #ffd60a; --orange: #ff9f0a;
-  --border-subtle: rgba(255,255,255,0.05); --border-standard: rgba(255,255,255,0.08); --border-hover: rgba(255,255,255,0.12);
+  --seed-bg: #070B12; --seed-fg: #E6EDF7; --seed-primary: #3B82F6; --seed-accent: #3B82F6; --seed-surface: #101827; --seed-radius: 8px;
+  --bg-deep: #070B12; --bg-panel: #101827; --bg-elevated: #172033; --bg-surface: #1E293B;
+  --text-primary: #E6EDF7; --text-secondary: #CBD5E1; --text-muted: #8A98AB; --text-faint: #64748B;
+  --accent: #3B82F6; --accent-bright: #3B82F6; --green: #22C55E; --red: #EF4444; --yellow: #F59E0B; --orange: #F59E0B;
+  --border-subtle: #1E293B; --border-standard: #263449; --border-hover: #334766;
   --surface-translucent: rgba(255,255,255,0.03); --surface-hover: rgba(255,255,255,0.06);
   --text-on-accent: #ffffff;
-  --font-body: system-ui, 'Segoe UI', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
-  --font-display: 'Orbitron', 'Rajdhani', var(--font-body);
-  --font-mono: 'Rajdhani', 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+  --font-body: 'Inter', system-ui, 'Segoe UI', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-display: 'Inter', var(--font-body);
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', ui-monospace, monospace;
 }
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-deep); color:var(--text-primary); font-family:var(--font-body); font-size:14px; -webkit-font-smoothing:antialiased; }
@@ -30,7 +30,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
 .app { width:100vw; height:100vh; display:grid; grid-template-rows:56px auto 1fr 44px; gap:0; }
 
 /* ===== TOP TITLE ===== */
-.top-bar { display:flex; align-items:center; padding:0 24px; background:rgba(8,9,10,0.92); backdrop-filter:blur(20px); border-bottom:1px solid var(--border-subtle); z-index:20; }
+.top-bar { display:flex; align-items:center; padding:0 24px; background:var(--bg-panel); border-bottom:1px solid var(--border-standard); z-index:20; }
 .brand { display:flex; align-items:center; gap:10px; flex-shrink:0; }
 .brand-icon { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:var(--accent); }
 .brand-icon svg { width:16px; height:16px; stroke:var(--text-on-accent); fill:none; stroke-width:1.8; }
@@ -40,7 +40,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
 .top-nav-tabs { display:flex; gap:2px; margin:0 auto; }
 .top-nav-tab { padding:6px 14px; font-size:13px; font-weight:500; color:var(--text-muted); border-radius:6px; cursor:pointer; transition:all 0.2s; user-select:none; }
 .top-nav-tab:hover { color:var(--text-secondary); background:var(--surface-hover); }
-.top-nav-tab.active { color:var(--text-primary); background:rgba(255,255,255,0.08); }
+.top-nav-tab.active { color:var(--text-primary); background:rgba(59,130,246,0.12); border-bottom:2px solid var(--accent); }
 .top-info { display:flex; align-items:center; gap:16px; flex-shrink:0; }
 .top-weather { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-muted); }
 .top-weather svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.5; }
@@ -64,15 +64,15 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
 .kpi-header { display:flex; align-items:center; gap:6px; }
 .kpi-icon { width:24px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .kpi-icon svg { width:14px; height:14px; stroke-width:1.6; fill:none; }
-.kpi-icon.cyan { background:rgba(41,151,255,0.10); }
+.kpi-icon.cyan { background:rgba(59,130,246,0.10); }
 .kpi-icon.cyan svg { stroke:var(--accent-bright); }
-.kpi-icon.green { background:rgba(48,209,88,0.10); }
+.kpi-icon.green { background:rgba(34,197,94,0.10); }
 .kpi-icon.green svg { stroke:var(--green); }
-.kpi-icon.red { background:rgba(255,69,58,0.10); }
+.kpi-icon.red { background:rgba(239,68,68,0.10); }
 .kpi-icon.red svg { stroke:var(--red); }
-.kpi-icon.yellow { background:rgba(255,214,10,0.10); }
+.kpi-icon.yellow { background:rgba(245,158,11,0.10); }
 .kpi-icon.yellow svg { stroke:var(--yellow); }
-.kpi-icon.orange { background:rgba(255,159,10,0.10); }
+.kpi-icon.orange { background:rgba(245,158,11,0.10); }
 .kpi-icon.orange svg { stroke:var(--orange); }
 .kpi-label { font-size:11px; color:var(--text-muted); font-weight:500; }
 .kpi-value-row { display:flex; align-items:baseline; gap:6px; }
@@ -102,7 +102,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
 .dp-dot.yellow { background:var(--yellow); }
 .dp-dot.orange { background:var(--orange); }
 .dp-title { font-size:13px; font-weight:600; color:var(--text-primary); letter-spacing:-0.02em; }
-.dp-badge { margin-left:auto; font-size:10px; font-weight:500; padding:1px 7px; border-radius:980px; background:rgba(41,151,255,0.12); color:var(--accent-bright); }
+.dp-badge { margin-left:auto; font-size:10px; font-weight:500; padding:1px 7px; border-radius:980px; background:rgba(59,130,246,0.12); color:var(--accent-bright); }
 .dp-body { padding:10px 14px; flex:1; overflow:auto; display:flex; flex-direction:column; }
 .dp-body::-webkit-scrollbar { width:3px; }
 .dp-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:2px; }
@@ -144,7 +144,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
 .alert-row { display:flex; align-items:flex-start; gap:6px; padding:5px 0; border-bottom:1px solid var(--border-subtle); }
 .alert-row:last-child { border-bottom:none; }
 .alert-dot { width:6px; height:6px; border-radius:50%; margin-top:5px; flex-shrink:0; }
-.alert-dot.critical { background:var(--red); box-shadow:0 0 4px rgba(255,69,58,0.4); }
+.alert-dot.critical { background:var(--red); box-shadow:0 0 4px rgba(239,68,68,0.4); }
 .alert-dot.warning { background:var(--yellow); }
 .alert-dot.info { background:var(--accent-bright); }
 .alert-text { flex:1; min-width:0; }
@@ -153,8 +153,8 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
 .alert-time { font-family:var(--font-mono); font-size:10px; color:var(--text-faint); flex-shrink:0; }
 
 /* ===== BOTTOM TICKER ===== */
-.bottom-ticker { display:flex; align-items:center; padding:0 16px; gap:12px; background:rgba(8,9,10,0.92); backdrop-filter:blur(12px); border-top:1px solid var(--border-subtle); }
-.ticker-badge { display:flex; align-items:center; gap:5px; padding:3px 10px; background:rgba(255,69,58,0.12); border:1px solid rgba(255,69,58,0.20); border-radius:980px; font-size:11px; font-weight:600; color:var(--red); flex-shrink:0; }
+.bottom-ticker { display:flex; align-items:center; padding:0 16px; gap:12px; background:var(--bg-panel); border-top:1px solid var(--border-standard); }
+.ticker-badge { display:flex; align-items:center; gap:5px; padding:3px 10px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.20); border-radius:980px; font-size:11px; font-weight:600; color:var(--red); flex-shrink:0; }
 .ticker-dot { width:5px; height:5px; border-radius:50%; background:var(--red); animation:blink 1.5s ease-in-out infinite; }
 @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
 .ticker-scroll { flex:1; overflow:hidden; position:relative; height:18px; }
@@ -174,7 +174,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
 .ticker-stat-label { font-size:9px; color:var(--text-faint); }
 
 /* ===== TOAST ===== */
-.click-toast { position:fixed; bottom:56px; left:50%; transform:translateX(-50%) translateY(12px); background:rgba(41,151,255,0.92); color:var(--text-on-accent); font-size:13px; font-weight:500; padding:8px 22px; border-radius:980px; pointer-events:none; opacity:0; z-index:100; backdrop-filter:blur(12px); transition:opacity 0.25s, transform 0.25s; white-space:nowrap; }
+.click-toast { position:fixed; bottom:56px; left:50%; transform:translateX(-50%) translateY(12px); background:rgba(59,130,246,0.92); color:var(--text-on-accent); font-size:13px; font-weight:500; padding:8px 22px; border-radius:980px; pointer-events:none; opacity:0; z-index:100; transition:opacity 0.25s, transform 0.25s; white-space:nowrap; }
 .click-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
 /* ===== RESPONSIVE SCALING ===== */
@@ -290,7 +290,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
         <div class="dp-body">
           <div class="chart-wrap">
             <svg viewBox="0 0 280 140" preserveAspectRatio="xMidYMid meet">
-              <defs><linearGradient id="areaCyan" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(41,151,255,0.25)"/><stop offset="100%" style="stop-color:rgba(41,151,255,0)"/></linearGradient></defs>
+              <defs><linearGradient id="areaCyan" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(59,130,246,0.25)"/><stop offset="100%" style="stop-color:rgba(59,130,246,0)"/></linearGradient></defs>
               <!-- Grid lines -->
               <line x1="30" y1="20" x2="270" y2="20" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="50" x2="270" y2="50" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="80" x2="270" y2="80" stroke="rgba(255,255,255,0.04)"/><line x1="30" y1="110" x2="270" y2="110" stroke="rgba(255,255,255,0.04)"/>
               <!-- Y labels -->
@@ -326,12 +326,12 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
     <div class="center-col">
       <!-- 人员通行趋势 + 车辆管控 -->
       <div class="data-panel" style="flex:1">
-        <div class="dp-header"><div class="dp-dot cyan"></div><span class="dp-title">人员通行趋势</span><span style="display:flex;align-items:center;gap:12px;margin-left:16px"><span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)"><span style="width:8px;height:8px;border-radius:2px;background:var(--green)"></span>学生</span><span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)"><span style="width:8px;height:8px;border-radius:2px;background:var(--accent-bright)"></span>教职工</span></span><span class="dp-badge" style="background:rgba(48,209,88,0.12);color:var(--green);margin-left:auto">实时</span></div>
+        <div class="dp-header"><div class="dp-dot cyan"></div><span class="dp-title">人员通行趋势</span><span style="display:flex;align-items:center;gap:12px;margin-left:16px"><span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)"><span style="width:8px;height:8px;border-radius:2px;background:var(--green)"></span>学生</span><span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)"><span style="width:8px;height:8px;border-radius:2px;background:var(--accent-bright)"></span>教职工</span></span><span class="dp-badge" style="background:rgba(34,197,94,0.12);color:var(--green);margin-left:auto">实时</span></div>
         <div class="dp-body">
           <div class="chart-wrap">
             <svg viewBox="0 0 400 220" preserveAspectRatio="xMidYMid meet">
-              <defs><linearGradient id="areaGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(48,209,88,0.20)"/><stop offset="100%" style="stop-color:rgba(48,209,88,0)"/></linearGradient>
-              <linearGradient id="areaBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(41,151,255,0.15)"/><stop offset="100%" style="stop-color:rgba(41,151,255,0)"/></linearGradient></defs>
+              <defs><linearGradient id="areaGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(34,197,94,0.20)"/><stop offset="100%" style="stop-color:rgba(34,197,94,0)"/></linearGradient>
+              <linearGradient id="areaBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:rgba(59,130,246,0.15)"/><stop offset="100%" style="stop-color:rgba(59,130,246,0)"/></linearGradient></defs>
               <!-- Grid lines -->
               <line x1="30" y1="30" x2="390" y2="30" stroke="rgba(255,255,255,0.04)"/>
               <line x1="30" y1="80" x2="390" y2="80" stroke="rgba(255,255,255,0.04)"/>
@@ -408,7 +408,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
     <div class="right-col">
       <!-- 设备运维 -->
       <div class="data-panel" style="flex:1">
-        <div class="dp-header"><div class="dp-dot green"></div><span class="dp-title">设备在线率</span><span class="dp-badge" style="background:rgba(48,209,88,0.12);color:var(--green);">97.1%</span></div>
+        <div class="dp-header"><div class="dp-dot green"></div><span class="dp-title">设备在线率</span><span class="dp-badge" style="background:rgba(34,197,94,0.12);color:var(--green);">97.1%</span></div>
         <div class="dp-body">
           <div class="chart-wrap">
             <svg viewBox="0 0 280 120" preserveAspectRatio="xMidYMid meet">
@@ -430,7 +430,7 @@ html, body { width:100vw; height:100vh; overflow:hidden; background:var(--bg-dee
       </div>
       <!-- 实时告警 -->
       <div class="data-panel" style="flex:0.8">
-        <div class="dp-header"><div class="dp-dot orange"></div><span class="dp-title">实时告警动态</span><span class="dp-badge" style="background:rgba(255,69,58,0.12);color:var(--red);">5 待处理</span></div>
+        <div class="dp-header"><div class="dp-dot orange"></div><span class="dp-title">实时告警动态</span><span class="dp-badge" style="background:rgba(239,68,68,0.12);color:var(--red);">5 待处理</span></div>
         <div class="dp-body" style="padding:6px 10px;">
           <div class="alert-list">
             <div class="alert-row"><div class="alert-dot critical"></div><div class="alert-text"><div class="alert-title">火灾报警 · B教学楼3F</div><div class="alert-meta">烟雾传感器 · SM-B3-302</div></div><span class="alert-time">14:28</span></div>
