@@ -9,39 +9,39 @@
 <title>可视化地图 - 平安校园指挥系统</title>
 <style>
 :root {
-  --seed-bg: #08090a;
-  --seed-fg: #f7f8f8;
-  --seed-primary: #0071e3;
-  --seed-accent: #2997ff;
-  --seed-surface: #0f1011;
-  --seed-radius: 10px;
-  --bg-deep: #08090a;
-  --bg-panel: #0f1011;
-  --bg-elevated: #191a1b;
-  --bg-surface: #28282c;
-  --text-primary: #f7f8f8;
-  --text-secondary: #d0d6e0;
-  --text-muted: #8a8f98;
-  --text-faint: #62666d;
-  --accent: #0071e3;
-  --accent-bright: #2997ff;
-  --accent-hover: #0077ed;
-  --green: #30d158;
-  --red: #ff453a;
-  --yellow: #ffd60a;
-  --orange: #ff9f0a;
-  --svg-cyan: #2997ff;
-  --svg-green: #30d158;
-  --svg-red: #ff453a;
-  --svg-faint: #62666d;
-  --border-subtle: rgba(255,255,255,0.05);
-  --border-standard: rgba(255,255,255,0.08);
-  --border-hover: rgba(255,255,255,0.12);
+  --seed-bg: #070B12;
+  --seed-fg: #E6EDF7;
+  --seed-primary: #3B82F6;
+  --seed-accent: #3B82F6;
+  --seed-surface: #101827;
+  --seed-radius: 8px;
+  --bg-deep: #070B12;
+  --bg-panel: #101827;
+  --bg-elevated: #172033;
+  --bg-surface: #1E293B;
+  --text-primary: #E6EDF7;
+  --text-secondary: #CBD5E1;
+  --text-muted: #8A98AB;
+  --text-faint: #64748B;
+  --accent: #3B82F6;
+  --accent-bright: #3B82F6;
+  --accent-hover: #2563EB;
+  --green: #22C55E;
+  --red: #EF4444;
+  --yellow: #F59E0B;
+  --orange: #F59E0B;
+  --svg-cyan: #3B82F6;
+  --svg-green: #22C55E;
+  --svg-red: #EF4444;
+  --svg-faint: #64748B;
+  --border-subtle: #1E293B;
+  --border-standard: #263449;
+  --border-hover: #334766;
   --surface-translucent: rgba(255,255,255,0.03);
   --surface-hover: rgba(255,255,255,0.06);
-  --font-display: system-ui, 'Segoe UI', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
-  --font-body: system-ui, 'Segoe UI', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
-  --font-mono: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+  --font-display: 'Inter', system-ui, 'Segoe UI', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-body: 'Inter', system-ui, 'Segoe UI', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', ui-monospace, monospace;
 }
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 html, body {
@@ -61,7 +61,7 @@ html, body {
 .top-nav {
   position:absolute; top:0; left:0; right:0; z-index:20;
   height:52px; display:flex; align-items:center; padding:0 20px;
-  background: rgba(8,9,10,0.85); backdrop-filter:blur(20px) saturate(1.6);
+  background: var(--bg-panel);
   border-bottom:1px solid var(--border-subtle);
 }
 .nav-brand { display:flex; align-items:center; gap:10px; flex-shrink:0; }
@@ -79,7 +79,7 @@ html, body {
   border-radius:6px; cursor:pointer; transition:all 0.2s; user-select:none;
 }
 .nav-tab:hover { color:var(--text-secondary); background:var(--surface-hover); }
-.nav-tab.active { color:var(--text-primary); background:rgba(255,255,255,0.08); }
+.nav-tab.active { color:var(--text-primary); background:rgba(59,130,246,0.12); border-bottom:2px solid var(--accent); }
 .nav-info { display:flex; align-items:center; gap:16px; flex-shrink:0; }
 .nav-weather { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-muted); }
 .nav-weather svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.5; }
@@ -90,14 +90,14 @@ html, body {
 .map-container {
   position:absolute; inset:0; z-index:1;
   background: url('bg-hex.png') center center / cover no-repeat;
-  background-color: #08090a;
+  background-color: #070B12;
 }
 #three-canvas { width:100%; height:100%; display:block; }
 
 /* ===== FLOATING PANELS ===== */
 .panel {
   position:absolute; z-index:10;
-  background: rgba(15,16,17,0.88); backdrop-filter:blur(16px) saturate(1.4);
+  background: var(--bg-panel);
   border:1px solid var(--border-standard); border-radius:var(--seed-radius);
   overflow:hidden;
 }
@@ -112,7 +112,7 @@ html, body {
 .panel-title { font-size:13px; font-weight:600; color:var(--text-primary); letter-spacing:-0.02em; }
 .panel-badge {
   margin-left:auto; font-size:10px; font-weight:500; padding:1px 7px;
-  border-radius:980px; background:rgba(41,151,255,0.12); color:var(--accent-bright);
+  border-radius:980px; background:rgba(59,130,246,0.12); color:var(--accent-bright);
 }
 .panel-body { padding:10px 14px; }
 
@@ -147,7 +147,7 @@ html, body {
 .device-row + .device-row { margin-top:2px; }
 .device-icon {
   width:28px; height:28px; border-radius:6px;
-  background:rgba(41,151,255,0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  background:rgba(59,130,246,0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
 .device-icon svg { width:14px; height:14px; stroke:var(--accent-bright); fill:none; stroke-width:1.6; }
 .device-info { flex:1; min-width:0; }
@@ -170,7 +170,7 @@ html, body {
 .alert-item:hover { background:var(--surface-hover); }
 .alert-item + .alert-item { margin-top:2px; }
 .alert-type-dot { width:8px; height:8px; border-radius:50%; margin-top:4px; flex-shrink:0; }
-.alert-type-dot.critical { background:var(--red); box-shadow:0 0 6px rgba(255,69,58,0.5); animation:alertPulse 2s ease-in-out infinite; }
+.alert-type-dot.critical { background:var(--red); box-shadow:0 0 6px rgba(239,68,68,0.5); animation:alertPulse 2s ease-in-out infinite; }
 .alert-type-dot.warning { background:var(--yellow); }
 .alert-type-dot.info { background:var(--accent-bright); }
 @keyframes alertPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
@@ -190,11 +190,11 @@ html, body {
   width:32px; height:32px; border-radius:6px; display:flex;
   align-items:center; justify-content:center; flex-shrink:0;
 }
-.area-indicator.security { background:rgba(41,151,255,0.10); border:1px solid rgba(41,151,255,0.20); }
+.area-indicator.security { background:rgba(59,130,246,0.10); border:1px solid rgba(59,130,246,0.20); }
 .area-indicator.security svg { stroke:var(--accent-bright); }
-.area-indicator.fire { background:rgba(255,69,58,0.10); border:1px solid rgba(255,69,58,0.20); }
+.area-indicator.fire { background:rgba(239,68,68,0.10); border:1px solid rgba(239,68,68,0.20); }
 .area-indicator.fire svg { stroke:var(--red); }
-.area-indicator.traffic { background:rgba(48,209,88,0.10); border:1px solid rgba(48,209,88,0.20); }
+.area-indicator.traffic { background:rgba(34,197,94,0.10); border:1px solid rgba(34,197,94,0.20); }
 .area-indicator.traffic svg { stroke:var(--green); }
 .area-indicator svg { width:16px; height:16px; fill:none; stroke-width:1.6; }
 .area-info { flex:1; }
@@ -247,7 +247,7 @@ html, body {
 /* ===== LAYER CONTROL ===== */
 .layer-control {
   position:absolute; top:64px; left:350px; z-index:15;
-  background:rgba(15,16,17,0.92); backdrop-filter:blur(16px) saturate(1.4);
+  background:var(--bg-panel);
   border:1px solid var(--border-standard); border-radius:var(--seed-radius);
   width:200px; height:auto; overflow:hidden;
   transition:width 0.3s ease, height 0.3s ease, border-radius 0.3s ease;
@@ -278,12 +278,12 @@ html, body {
 .alert-ticker {
   position:absolute; bottom:0; left:0; right:0; z-index:15;
   height:44px; display:flex; align-items:center;
-  background:rgba(8,9,10,0.90); backdrop-filter:blur(12px);
+  background:var(--bg-panel);
   border-top:1px solid var(--border-subtle); padding:0 16px; gap:12px;
 }
 .ticker-badge {
   display:flex; align-items:center; gap:6px; padding:4px 10px;
-  background:rgba(255,69,58,0.12); border:1px solid rgba(255,69,58,0.20);
+  background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.20);
   border-radius:980px; font-size:11px; font-weight:600; color:var(--red); flex-shrink:0;
 }
 .ticker-dot { width:6px; height:6px; border-radius:50%; background:var(--red); animation:alertPulse 1.5s ease-in-out infinite; }
@@ -309,7 +309,7 @@ html, body {
 /* ===== MAP TOOLTIPS ===== */
 .map-tooltip {
   position:absolute; z-index:25; pointer-events:none;
-  background:rgba(15,16,17,0.95); backdrop-filter:blur(12px);
+  background:var(--bg-panel);
   border:1px solid var(--border-standard); border-radius:8px;
   padding:10px 14px; min-width:180px; opacity:0; transition:opacity 0.2s;
 }
@@ -334,9 +334,9 @@ html, body {
 @keyframes rippleAnim { to { transform:scale(3); opacity:0; } }
 .click-toast {
   position:fixed; bottom:60px; left:50%; transform:translateX(-50%) translateY(12px);
-  background:rgba(41,151,255,0.92); color:#fff; font-size:13px; font-weight:500;
+  background:rgba(59,130,246,0.92); color:#fff; font-size:13px; font-weight:500;
   padding:8px 22px; border-radius:980px; pointer-events:none; opacity:0; z-index:100;
-  backdrop-filter:blur(12px); transition:opacity 0.25s, transform 0.25s; white-space:nowrap;
+  transition:opacity 0.25s, transform 0.25s; white-space:nowrap;
 }
 .click-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
@@ -344,13 +344,13 @@ html, body {
 .map-label-layer { position:absolute!important; top:0; left:0; pointer-events:none; z-index:5; }
 .district-label {
   color:var(--text-secondary); font-size:10px; font-weight:500;
-  padding:2px 8px; background:rgba(0,113,227,0.15); border:1px solid rgba(41,151,255,0.25);
+  padding:2px 8px; background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.25);
   border-radius:4px; white-space:nowrap; pointer-events:none;
-  text-shadow:0 1px 4px rgba(0,0,0,0.9); backdrop-filter:blur(4px);
+  text-shadow:0 1px 4px rgba(0,0,0,0.9);
   transition:all 0.2s;
 }
 .district-label.highlight {
-  color:var(--text-primary); background:rgba(0,113,227,0.35);
+  color:var(--text-primary); background:rgba(59,130,246,0.35);
   border-color:var(--accent-bright); font-size:11px; font-weight:600;
 }
 .district-label .lbl-dot {
@@ -361,12 +361,12 @@ html, body {
   position:absolute; inset:0; z-index:6;
   display:flex; align-items:center; justify-content:center;
   color:var(--text-muted); font-size:13px; gap:10px;
-  background:rgba(8,9,10,0.5); backdrop-filter:blur(4px);
+  background:rgba(7,11,18,0.5);
   transition:opacity 0.5s;
 }
 .map-loading-overlay.hidden { opacity:0; pointer-events:none; }
 .map-loading-spinner {
-  width:20px; height:20px; border:2px solid rgba(41,151,255,0.2);
+  width:20px; height:20px; border:2px solid rgba(59,130,246,0.2);
   border-top-color:var(--accent-bright); border-radius:50%;
   animation:spinLoader 0.8s linear infinite;
 }
@@ -522,7 +522,7 @@ html, body {
     <div class="panel-header">
       <div class="panel-dot red"></div>
       <span class="panel-title">实时预警事件</span>
-      <span class="panel-badge" style="background:rgba(255,69,58,0.12);color:var(--red);">5 待处理</span>
+      <span class="panel-badge" style="background:rgba(239,68,68,0.12);color:var(--red);">5 待处理</span>
     </div>
     <div class="panel-body">
       <div class="alert-list">
@@ -843,11 +843,11 @@ var W=container.clientWidth,H=container.clientHeight;
 
 /* ===== Renderer ===== */
 var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
-renderer.setSize(W,H);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));renderer.setClearColor(0x08090a,0);
+renderer.setSize(W,H);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));renderer.setClearColor(0x070B12,0);
 
 /* ===== Scene ===== */
 var scene=new THREE.Scene();
-scene.fog=new THREE.FogExp2(0x08090a,0.0006);
+scene.fog=new THREE.FogExp2(0x070B12,0.0006);
 
 /* ===== Camera ===== */
 var camera=new THREE.PerspectiveCamera(38,W/H,1,3000);
@@ -878,20 +878,20 @@ controls.target.set(0,25,0);controls.update();
 scene.add(new THREE.AmbientLight(0x4488cc,0.7));
 var dirLight=new THREE.DirectionalLight(0x88bbff,1.4);
 dirLight.position.set(120,380,200);scene.add(dirLight);
-var ptLight=new THREE.PointLight(0x2997ff,0.4,600);
+var ptLight=new THREE.PointLight(0x3B82F6,0.4,600);
 ptLight.position.set(0,120,0);scene.add(ptLight);
 
 /* ===== Theme ===== */
 var TH={
-  sideTop:'#2997ff',sideMid:'#0055aa',sideBot:'#060d18',
+  sideTop:'#3B82F6',sideMid:'#0055aa',sideBot:'#060d18',
   topSurf:'#0c1824',topEmit:'#001122',
-  outline:'#2997ff',outlineBright:'#5ac8fa',
-  flyBase:'#2997ff',flyFlow:'#aaddff',
+  outline:'#3B82F6',outlineBright:'#5ac8fa',
+  flyBase:'#3B82F6',flyFlow:'#aaddff',
   chase:'#5ac8fa',
-  scatter:'#2997ff',scatterGlow:'#0071e3',
-  ringA:'#2997ff',ringB:'#0055aa',
-  hoverTop:'#2997ff',hoverEmit:'#2997ff',
-  hlColor:'#2997ff'
+  scatter:'#3B82F6',scatterGlow:'#3B82F6',
+  ringA:'#3B82F6',ringB:'#0055aa',
+  hoverTop:'#3B82F6',hoverEmit:'#3B82F6',
+  hlColor:'#3B82F6'
 };
 
 /* ===== Side-wall gradient ShaderMaterial ===== */
