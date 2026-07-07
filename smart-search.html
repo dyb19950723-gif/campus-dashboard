@@ -84,8 +84,12 @@ html, body {
 /* ===== LEFT PANEL ===== */
 .left-panel {
   grid-area:left; display:flex; flex-direction:column;
-  background:var(--bg-panel); border-right:1px solid var(--border-subtle); overflow:hidden;
+  background:var(--bg-panel); border-right:1px solid var(--border-subtle); overflow-y:auto; overflow-x:hidden;
 }
+.left-panel::-webkit-scrollbar { width:4px; }
+.left-panel::-webkit-scrollbar-track { background:transparent; }
+.left-panel::-webkit-scrollbar-thumb { background:var(--border-hover); border-radius:2px; }
+.left-panel::-webkit-scrollbar-thumb:hover { background:var(--text-faint); }
 .panel-section { padding:14px 16px; border-bottom:1px solid var(--border-subtle); }
 .section-title { font-size:11px; font-weight:600; color:var(--text-faint); letter-spacing:0.04em; text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
 .section-title-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); }
@@ -139,8 +143,8 @@ html, body {
 .search-sub-tab:hover { color:var(--text-muted); }
 .search-sub-tab.active { background:var(--accent); color:var(--text-on-accent); }
 
-.target-type-row { display:flex; gap:4px; margin-bottom:12px; }
-.target-btn { flex:1; padding:7px 0; font-size:11px; font-weight:500; color:var(--text-faint); background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:6px; cursor:pointer; transition:all 0.15s; text-align:center; font-family:var(--font-body); display:flex; align-items:center; justify-content:center; gap:4px; }
+.target-type-row { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:12px; }
+.target-btn { flex:1 1 calc(50% - 2px); min-width:0; padding:7px 0; font-size:11px; font-weight:500; color:var(--text-faint); background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:6px; cursor:pointer; transition:all 0.15s; text-align:center; font-family:var(--font-body); display:flex; align-items:center; justify-content:center; gap:4px; }
 .target-btn svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.6; }
 .target-btn:hover { color:var(--text-muted); border-color:var(--border-hover); }
 .target-btn.active { background:rgba(59,130,246,0.12); border-color:var(--accent); color:var(--accent-bright); }
@@ -386,6 +390,8 @@ html, body {
             <div class="target-type-row">
               <button class="target-btn active" onclick="setTargetType(this,'face')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>人脸</button>
               <button class="target-btn" onclick="setTargetType(this,'body')"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>人体</button>
+              <button class="target-btn" onclick="setTargetType(this,'motor')"><svg viewBox="0 0 24 24"><rect x="1" y="6" width="22" height="12" rx="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><path d="M6 10h4l2-3h4l2 3"/></svg>机动车</button>
+              <button class="target-btn" onclick="setTargetType(this,'nonmotor')"><svg viewBox="0 0 24 24"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17l4-8h4l2 4h2"/><path d="M10 9l2-4"/></svg>非机动车</button>
             </div>
           </div>
           <!-- Gender -->
@@ -962,7 +968,8 @@ function setSubMode(btn,mode){
 function setTargetType(btn,type){
   document.querySelectorAll('.target-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  showToast('已切换目标类型：'+(type==='face'?'人脸':'人体'));
+  var labels={face:'人脸',body:'人体',motor:'机动车',nonmotor:'非机动车'};
+  showToast('已切换目标类型：'+(labels[type]||type));
 }
 
 function pickChip(chip){
