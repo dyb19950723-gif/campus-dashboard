@@ -394,128 +394,15 @@ html, body {
               <button class="target-btn" onclick="setTargetType(this,'nonmotor')"><svg viewBox="0 0 24 24"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17l4-8h4l2 4h2"/><path d="M10 9l2-4"/></svg>非机动车</button>
             </div>
           </div>
-          <!-- Gender -->
-          <div class="attr-group">
-            <div class="attr-group-label"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>性别</div>
-            <div class="attr-chips" data-group="gender">
-              <span class="attr-chip active" onclick="pickChip(this)">不限</span>
-              <span class="attr-chip" onclick="pickChip(this)">男性</span>
-              <span class="attr-chip" onclick="pickChip(this)">女性</span>
-            </div>
-          </div>
-          <!-- Expand toggle -->
+          <!-- Dynamic attribute container -->
+          <div id="featureBaseAttrs"></div>
           <button class="feature-toggle-btn" id="featureToggle" onclick="toggleFeaturePanel()">
             <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-            更多特征
+            <span id="featureToggleLabel">更多特征</span>
             <span class="feature-count" id="featureCount" style="display:none">0</span>
           </button>
-          <!-- Expandable feature panel -->
           <div class="feature-panel" id="featurePanel">
-            <!-- Age -->
-            <div class="attr-group">
-              <div class="attr-group-label">年龄段</div>
-              <div class="attr-chips" data-group="age">
-                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
-                <span class="attr-chip" onclick="pickChip(this)">儿童</span>
-                <span class="attr-chip" onclick="pickChip(this)">青少年</span>
-                <span class="attr-chip" onclick="pickChip(this)">青年</span>
-                <span class="attr-chip" onclick="pickChip(this)">中年</span>
-                <span class="attr-chip" onclick="pickChip(this)">老年</span>
-              </div>
-            </div>
-            <!-- Glasses -->
-            <div class="attr-group">
-              <div class="attr-group-label">眼镜</div>
-              <div class="attr-chips" data-group="glasses">
-                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
-                <span class="attr-chip" onclick="pickChip(this)">不戴眼镜</span>
-                <span class="attr-chip" onclick="pickChip(this)">戴眼镜</span>
-              </div>
-            </div>
-            <!-- Mask -->
-            <div class="attr-group">
-              <div class="attr-group-label">口罩</div>
-              <div class="attr-chips" data-group="mask">
-                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
-                <span class="attr-chip" onclick="pickChip(this)">不戴口罩</span>
-                <span class="attr-chip" onclick="pickChip(this)">戴口罩</span>
-              </div>
-            </div>
-            <!-- Backpack -->
-            <div class="attr-group">
-              <div class="attr-group-label">背包</div>
-              <div class="attr-chips" data-group="backpack">
-                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
-                <span class="attr-chip" onclick="pickChip(this)">单肩包</span>
-                <span class="attr-chip" onclick="pickChip(this)">双肩包</span>
-                <span class="attr-chip" onclick="pickChip(this)">未背包</span>
-              </div>
-            </div>
-            <!-- Hat -->
-            <div class="attr-group">
-              <div class="attr-group-label">帽子</div>
-              <div class="attr-chips" data-group="hat">
-                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
-                <span class="attr-chip" onclick="pickChip(this)">不戴帽</span>
-                <span class="attr-chip" onclick="pickChip(this)">戴帽</span>
-              </div>
-            </div>
-            <!-- Hair -->
-            <div class="attr-group">
-              <div class="attr-group-label">头发长度</div>
-              <div class="attr-chips" data-group="hair">
-                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
-                <span class="attr-chip" onclick="pickChip(this)">光头</span>
-                <span class="attr-chip" onclick="pickChip(this)">短发</span>
-                <span class="attr-chip" onclick="pickChip(this)">长发</span>
-              </div>
-            </div>
-            <!-- Upper clothing -->
-            <div class="attr-group">
-              <div class="attr-group-label">上衣款式</div>
-              <div class="attr-chips" data-group="upper">
-                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
-                <span class="attr-chip" onclick="pickChip(this)">短款</span>
-                <span class="attr-chip" onclick="pickChip(this)">长款</span>
-              </div>
-            </div>
-            <!-- Sleeve -->
-            <div class="attr-group">
-              <div class="attr-group-label">袖长</div>
-              <div class="attr-chips" data-group="sleeve">
-                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
-                <span class="attr-chip" onclick="pickChip(this)">长袖</span>
-                <span class="attr-chip" onclick="pickChip(this)">短袖</span>
-                <span class="attr-chip" onclick="pickChip(this)">无袖</span>
-              </div>
-            </div>
-            <!-- Lower clothing -->
-            <div class="attr-group">
-              <div class="attr-group-label">下衣款式</div>
-              <div class="attr-chips" data-group="lower">
-                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
-                <span class="attr-chip" onclick="pickChip(this)">裤子</span>
-                <span class="attr-chip" onclick="pickChip(this)">裙子</span>
-              </div>
-            </div>
-            <!-- Riding -->
-            <div class="attr-group">
-              <div class="attr-group-label">骑行</div>
-              <div class="attr-chips" data-group="riding">
-                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
-                <span class="attr-chip" onclick="pickChip(this)">骑行中</span>
-                <span class="attr-chip" onclick="pickChip(this)">未骑行</span>
-              </div>
-            </div>
-            <!-- Carrying -->
-            <div class="attr-group">
-              <div class="attr-group-label">手提物</div>
-              <div class="attr-chips" data-group="carrying">
-                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
-                <span class="attr-chip" onclick="pickChip(this)">有手提物</span>
-                <span class="attr-chip" onclick="pickChip(this)">无手提物</span>
-              </div>
-            </div>
+            <div id="featureMoreAttrs"></div>
           </div>
         </div>
       </div>
@@ -962,13 +849,117 @@ function setSubMode(btn,mode){
   var isImage=mode==='image';
   document.getElementById('imageSearchWrap').style.display=isImage?'':'none';
   document.getElementById('featureSearchWrap').style.display=isImage?'none':'';
+  if(!isImage){
+    var activeBtn=document.querySelector('.target-btn.active');
+    var type=activeBtn?activeBtn.getAttribute('onclick').match(/'(\w+)'/)[1]:'face';
+    renderFeatureAttrs(type);
+  }
   showToast(isImage?'以图/姓名搜索模式':'特征搜索模式');
+}
+
+var FEATURE_CONFIG = {
+  face: {
+    baseAttrs: [
+      {key:'gender', label:'性别', icon:'<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>', options:['不限','男性','女性']}
+    ],
+    moreAttrs: [
+      {key:'age', label:'年龄段', options:['不限','儿童','青少年','青年','中年','老年']},
+      {key:'glasses', label:'眼镜', options:['不限','不戴眼镜','戴眼镜']}
+    ],
+    moreLabel: '更多人脸特征'
+  },
+  body: {
+    baseAttrs: [
+      {key:'gender', label:'性别', icon:'<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>', options:['不限','男性','女性']}
+    ],
+    moreAttrs: [
+      {key:'age', label:'年龄段', options:['不限','儿童','青少年','青年','中年','老年']},
+      {key:'glasses', label:'眼镜', options:['不限','不戴眼镜','戴眼镜']},
+      {key:'mask', label:'口罩', options:['不限','不戴口罩','戴口罩']},
+      {key:'backpack', label:'背包', options:['不限','单肩包','双肩包','未背包']},
+      {key:'hat', label:'帽子', options:['不限','不戴帽','戴帽']},
+      {key:'hair', label:'头发长度', options:['不限','光头','短发','长发']},
+      {key:'upper', label:'上衣款式', options:['不限','短款','长款']},
+      {key:'sleeve', label:'袖长', options:['不限','长袖','短袖','无袖']},
+      {key:'lower', label:'下衣款式', options:['不限','裤子','裙子']},
+      {key:'riding', label:'骑行', options:['不限','骑行中','未骑行']},
+      {key:'carrying', label:'手提物', options:['不限','有手提物','无手提物']}
+    ],
+    moreLabel: '更多人体特征'
+  },
+  motor: {
+    baseAttrs: [
+      {key:'vehicle_type', label:'车辆类型', icon:'<svg viewBox="0 0 24 24"><rect x="1" y="6" width="22" height="12" rx="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>', options:['不限','轿车','SUV','面包车','货车','客车']}
+    ],
+    moreAttrs: [
+      {key:'vehicle_color', label:'车身颜色', options:['不限','白色','黑色','银色','红色','蓝色','黄色','绿色']},
+      {key:'plate_color', label:'车牌颜色', options:['不限','蓝色','绿色','黄色','白色']}
+    ],
+    moreLabel: '更多机动车特征'
+  },
+  nonmotor: {
+    baseAttrs: [
+      {key:'nm_type', label:'车辆类型', icon:'<svg viewBox="0 0 24 24"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17l4-8h4l2 4h2"/></svg>', options:['不限','自行车','电动车','三轮车']}
+    ],
+    moreAttrs: [
+      {key:'nm_color', label:'车身颜色', options:['不限','黑色','白色','红色','蓝色','银色']},
+      {key:'nm_passenger', label:'载人情况', options:['不限','有载人','无载人']}
+    ],
+    moreLabel: '更多非机动车特征'
+  }
+};
+
+var currentTargetType = 'face';
+
+function renderFeatureAttrs(type) {
+  currentTargetType = type;
+  var config = FEATURE_CONFIG[type];
+  if (!config) return;
+
+  // Render base attributes
+  var baseHtml = '';
+  config.baseAttrs.forEach(function(attr) {
+    baseHtml += '<div class="attr-group">';
+    baseHtml += '<div class="attr-group-label">' + (attr.icon || '') + attr.label + '</div>';
+    baseHtml += '<div class="attr-chips" data-group="' + attr.key + '">';
+    attr.options.forEach(function(opt, i) {
+      baseHtml += '<span class="attr-chip' + (i === 0 ? ' active' : '') + '" onclick="pickChip(this)">' + opt + '</span>';
+    });
+    baseHtml += '</div></div>';
+  });
+  document.getElementById('featureBaseAttrs').innerHTML = baseHtml;
+
+  // Render more attributes
+  var moreHtml = '';
+  config.moreAttrs.forEach(function(attr) {
+    moreHtml += '<div class="attr-group">';
+    moreHtml += '<div class="attr-group-label">' + attr.label + '</div>';
+    moreHtml += '<div class="attr-chips" data-group="' + attr.key + '">';
+    attr.options.forEach(function(opt, i) {
+      moreHtml += '<span class="attr-chip' + (i === 0 ? ' active' : '') + '" onclick="pickChip(this)">' + opt + '</span>';
+    });
+    moreHtml += '</div></div>';
+  });
+  document.getElementById('featureMoreAttrs').innerHTML = moreHtml;
+
+  // Update toggle label
+  document.getElementById('featureToggleLabel').textContent = config.moreLabel;
+
+  // Reset expanded state
+  document.getElementById('featurePanel').classList.remove('expanded');
+  document.getElementById('featureToggle').classList.remove('expanded');
+
+  // Hide toggle if no more attributes
+  document.getElementById('featureToggle').style.display = config.moreAttrs.length > 0 ? '' : 'none';
+
+  updateFeatureCount();
 }
 
 function setTargetType(btn,type){
   document.querySelectorAll('.target-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   var labels={face:'人脸',body:'人体',motor:'机动车',nonmotor:'非机动车'};
+  renderFeatureAttrs(type);
   showToast('已切换目标类型：'+(labels[type]||type));
 }
 
