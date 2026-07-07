@@ -133,6 +133,35 @@ html, body {
 .name-search-go svg { width:16px; height:16px; stroke:var(--text-on-accent); fill:none; stroke-width:2; }
 .name-search-hint { font-size:10px; color:var(--text-faint); margin-top:6px; opacity:0.7; }
 
+/* ===== Feature Search ===== */
+.search-sub-tabs { display:flex; gap:2px; padding:2px; background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:8px; margin-bottom:12px; }
+.search-sub-tab { flex:1; padding:7px 0; font-size:12px; font-weight:500; color:var(--text-faint); border-radius:6px; cursor:pointer; transition:all 0.15s; text-align:center; border:none; background:transparent; font-family:var(--font-body); }
+.search-sub-tab:hover { color:var(--text-muted); }
+.search-sub-tab.active { background:var(--accent); color:var(--text-on-accent); }
+
+.target-type-row { display:flex; gap:4px; margin-bottom:12px; }
+.target-btn { flex:1; padding:7px 0; font-size:11px; font-weight:500; color:var(--text-faint); background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:6px; cursor:pointer; transition:all 0.15s; text-align:center; font-family:var(--font-body); display:flex; align-items:center; justify-content:center; gap:4px; }
+.target-btn svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.6; }
+.target-btn:hover { color:var(--text-muted); border-color:var(--border-hover); }
+.target-btn.active { background:rgba(59,130,246,0.12); border-color:var(--accent); color:var(--accent-bright); }
+
+.attr-group { margin-bottom:10px; }
+.attr-group-label { font-size:10px; font-weight:600; color:var(--text-faint); letter-spacing:0.04em; text-transform:uppercase; margin-bottom:6px; display:flex; align-items:center; gap:4px; }
+.attr-group-label svg { width:12px; height:12px; stroke:currentColor; fill:none; stroke-width:1.5; }
+.attr-chips { display:flex; flex-wrap:wrap; gap:4px; }
+.attr-chip { padding:5px 10px; font-size:11px; font-weight:500; color:var(--text-muted); background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:5px; cursor:pointer; transition:all 0.15s; font-family:var(--font-body); white-space:nowrap; user-select:none; }
+.attr-chip:hover { color:var(--text-secondary); border-color:var(--border-hover); background:var(--surface-hover); }
+.attr-chip.active { background:rgba(59,130,246,0.12); border-color:var(--accent); color:var(--accent-bright); }
+
+.feature-panel { max-height:0; overflow:hidden; transition:max-height 0.3s ease; }
+.feature-panel.expanded { max-height:600px; }
+.feature-toggle-btn { width:100%; padding:8px; font-size:11px; font-weight:500; color:var(--text-muted); background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:6px; cursor:pointer; transition:all 0.15s; text-align:center; font-family:var(--font-body); display:flex; align-items:center; justify-content:center; gap:5px; margin-bottom:10px; }
+.feature-toggle-btn:hover { color:var(--text-secondary); border-color:var(--border-hover); }
+.feature-toggle-btn svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.6; transition:transform 0.25s; }
+.feature-toggle-btn.expanded svg { transform:rotate(180deg); }
+
+.feature-count { display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 4px; font-size:9px; font-weight:600; color:var(--text-on-accent); background:var(--accent); border-radius:980px; margin-left:4px; }
+
 /* License plate input */
 .plate-input-wrap { margin-bottom:12px; }
 .plate-input { width:100%; padding:12px 14px; background:var(--surface-translucent); border:1px solid var(--border-subtle); border-radius:8px; color:var(--text-primary); font-size:18px; font-family:var(--font-mono); font-weight:600; letter-spacing:0.1em; text-align:center; text-transform:uppercase; outline:none; transition:border-color 0.2s; }
@@ -314,30 +343,174 @@ html, body {
 
       <!-- Person mode -->
       <div id="personSearch">
-        <input type="file" id="faceFileInput" accept="image/jpeg,image/png" style="display:none" onchange="handleFaceUpload(this)">
-        <div class="face-upload" id="faceUpload" onclick="document.getElementById('faceFileInput').click()">
-          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <span class="face-upload-text">点击上传人脸照片</span>
-          <span class="face-upload-hint">支持 JPG / PNG，正面免冠照最佳</span>
-          <img class="face-preview" id="facePreview" alt="人脸预览">
-          <div class="face-clear" onclick="event.stopPropagation();clearFaceUpload()" title="清除照片">
-            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </div>
-          <div class="face-reupload">
-            <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            <span>点击重新上传</span>
-          </div>
-          <div class="face-match-ring"></div>
+        <!-- Sub-tabs: image search vs feature search -->
+        <div class="search-sub-tabs">
+          <button class="search-sub-tab active" onclick="setSubMode(this,'image')">以图 / 姓名搜索</button>
+          <button class="search-sub-tab" onclick="setSubMode(this,'feature')">特征搜索</button>
         </div>
-        <div class="search-divider"><span>或通过姓名 / 工号查找</span></div>
-        <div class="name-search-wrap">
-          <div class="name-search-row">
-            <input class="name-search-input" type="text" id="nameSearchInput" placeholder="输入姓名或工号搜索" aria-label="输入姓名或工号搜索" onkeydown="if(event.key==='Enter')doNameSearch()">
-            <button class="name-search-go" onclick="doNameSearch()" aria-label="搜索">
-              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </button>
+
+        <!-- Image / Name search (default) -->
+        <div id="imageSearchWrap">
+          <input type="file" id="faceFileInput" accept="image/jpeg,image/png" style="display:none" onchange="handleFaceUpload(this)">
+          <div class="face-upload" id="faceUpload" onclick="document.getElementById('faceFileInput').click()">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span class="face-upload-text">点击上传人脸照片</span>
+            <span class="face-upload-hint">支持 JPG / PNG，正面免冠照最佳</span>
+            <img class="face-preview" id="facePreview" alt="人脸预览">
+            <div class="face-clear" onclick="event.stopPropagation();clearFaceUpload()" title="清除照片">
+              <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </div>
+            <div class="face-reupload">
+              <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              <span>点击重新上传</span>
+            </div>
+            <div class="face-match-ring"></div>
           </div>
-          <div class="name-search-hint">支持模糊搜索，如"张明远"或"T20187"</div>
+          <div class="search-divider"><span>或通过姓名 / 工号查找</span></div>
+          <div class="name-search-wrap">
+            <div class="name-search-row">
+              <input class="name-search-input" type="text" id="nameSearchInput" placeholder="输入姓名或工号搜索" aria-label="输入姓名或工号搜索" onkeydown="if(event.key==='Enter')doNameSearch()">
+              <button class="name-search-go" onclick="doNameSearch()" aria-label="搜索">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </button>
+            </div>
+            <div class="name-search-hint">支持模糊搜索，如"张明远"或"T20187"</div>
+          </div>
+        </div>
+
+        <!-- Feature search -->
+        <div id="featureSearchWrap" style="display:none">
+          <!-- Target type -->
+          <div class="attr-group">
+            <div class="attr-group-label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>目标类型</div>
+            <div class="target-type-row">
+              <button class="target-btn active" onclick="setTargetType(this,'face')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>人脸</button>
+              <button class="target-btn" onclick="setTargetType(this,'body')"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>人体</button>
+            </div>
+          </div>
+          <!-- Gender -->
+          <div class="attr-group">
+            <div class="attr-group-label"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>性别</div>
+            <div class="attr-chips" data-group="gender">
+              <span class="attr-chip active" onclick="pickChip(this)">不限</span>
+              <span class="attr-chip" onclick="pickChip(this)">男性</span>
+              <span class="attr-chip" onclick="pickChip(this)">女性</span>
+            </div>
+          </div>
+          <!-- Expand toggle -->
+          <button class="feature-toggle-btn" id="featureToggle" onclick="toggleFeaturePanel()">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            更多特征
+            <span class="feature-count" id="featureCount" style="display:none">0</span>
+          </button>
+          <!-- Expandable feature panel -->
+          <div class="feature-panel" id="featurePanel">
+            <!-- Age -->
+            <div class="attr-group">
+              <div class="attr-group-label">年龄段</div>
+              <div class="attr-chips" data-group="age">
+                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
+                <span class="attr-chip" onclick="pickChip(this)">儿童</span>
+                <span class="attr-chip" onclick="pickChip(this)">青少年</span>
+                <span class="attr-chip" onclick="pickChip(this)">青年</span>
+                <span class="attr-chip" onclick="pickChip(this)">中年</span>
+                <span class="attr-chip" onclick="pickChip(this)">老年</span>
+              </div>
+            </div>
+            <!-- Glasses -->
+            <div class="attr-group">
+              <div class="attr-group-label">眼镜</div>
+              <div class="attr-chips" data-group="glasses">
+                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
+                <span class="attr-chip" onclick="pickChip(this)">不戴眼镜</span>
+                <span class="attr-chip" onclick="pickChip(this)">戴眼镜</span>
+              </div>
+            </div>
+            <!-- Mask -->
+            <div class="attr-group">
+              <div class="attr-group-label">口罩</div>
+              <div class="attr-chips" data-group="mask">
+                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
+                <span class="attr-chip" onclick="pickChip(this)">不戴口罩</span>
+                <span class="attr-chip" onclick="pickChip(this)">戴口罩</span>
+              </div>
+            </div>
+            <!-- Backpack -->
+            <div class="attr-group">
+              <div class="attr-group-label">背包</div>
+              <div class="attr-chips" data-group="backpack">
+                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
+                <span class="attr-chip" onclick="pickChip(this)">单肩包</span>
+                <span class="attr-chip" onclick="pickChip(this)">双肩包</span>
+                <span class="attr-chip" onclick="pickChip(this)">未背包</span>
+              </div>
+            </div>
+            <!-- Hat -->
+            <div class="attr-group">
+              <div class="attr-group-label">帽子</div>
+              <div class="attr-chips" data-group="hat">
+                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
+                <span class="attr-chip" onclick="pickChip(this)">不戴帽</span>
+                <span class="attr-chip" onclick="pickChip(this)">戴帽</span>
+              </div>
+            </div>
+            <!-- Hair -->
+            <div class="attr-group">
+              <div class="attr-group-label">头发长度</div>
+              <div class="attr-chips" data-group="hair">
+                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
+                <span class="attr-chip" onclick="pickChip(this)">光头</span>
+                <span class="attr-chip" onclick="pickChip(this)">短发</span>
+                <span class="attr-chip" onclick="pickChip(this)">长发</span>
+              </div>
+            </div>
+            <!-- Upper clothing -->
+            <div class="attr-group">
+              <div class="attr-group-label">上衣款式</div>
+              <div class="attr-chips" data-group="upper">
+                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
+                <span class="attr-chip" onclick="pickChip(this)">短款</span>
+                <span class="attr-chip" onclick="pickChip(this)">长款</span>
+              </div>
+            </div>
+            <!-- Sleeve -->
+            <div class="attr-group">
+              <div class="attr-group-label">袖长</div>
+              <div class="attr-chips" data-group="sleeve">
+                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
+                <span class="attr-chip" onclick="pickChip(this)">长袖</span>
+                <span class="attr-chip" onclick="pickChip(this)">短袖</span>
+                <span class="attr-chip" onclick="pickChip(this)">无袖</span>
+              </div>
+            </div>
+            <!-- Lower clothing -->
+            <div class="attr-group">
+              <div class="attr-group-label">下衣款式</div>
+              <div class="attr-chips" data-group="lower">
+                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
+                <span class="attr-chip" onclick="pickChip(this)">裤子</span>
+                <span class="attr-chip" onclick="pickChip(this)">裙子</span>
+              </div>
+            </div>
+            <!-- Riding -->
+            <div class="attr-group">
+              <div class="attr-group-label">骑行</div>
+              <div class="attr-chips" data-group="riding">
+                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
+                <span class="attr-chip" onclick="pickChip(this)">骑行中</span>
+                <span class="attr-chip" onclick="pickChip(this)">未骑行</span>
+              </div>
+            </div>
+            <!-- Carrying -->
+            <div class="attr-group">
+              <div class="attr-group-label">手提物</div>
+              <div class="attr-chips" data-group="carrying">
+                <span class="attr-chip active" onclick="pickChip(this)">不限</span>
+                <span class="attr-chip" onclick="pickChip(this)">有手提物</span>
+                <span class="attr-chip" onclick="pickChip(this)">无手提物</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -777,6 +950,50 @@ function setMode(btn,mode){
   showToast(isP?'人员寻踪模式':'车辆寻踪模式');
 }
 
+function setSubMode(btn,mode){
+  document.querySelectorAll('.search-sub-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  var isImage=mode==='image';
+  document.getElementById('imageSearchWrap').style.display=isImage?'':'none';
+  document.getElementById('featureSearchWrap').style.display=isImage?'none':'';
+  showToast(isImage?'以图/姓名搜索模式':'特征搜索模式');
+}
+
+function setTargetType(btn,type){
+  document.querySelectorAll('.target-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  showToast('已切换目标类型：'+(type==='face'?'人脸':'人体'));
+}
+
+function pickChip(chip){
+  var group=chip.parentElement;
+  group.querySelectorAll('.attr-chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active');
+  updateFeatureCount();
+}
+
+function toggleFeaturePanel(){
+  var panel=document.getElementById('featurePanel');
+  var btn=document.getElementById('featureToggle');
+  panel.classList.toggle('expanded');
+  btn.classList.toggle('expanded');
+}
+
+function updateFeatureCount(){
+  var count=0;
+  document.querySelectorAll('#featureSearchWrap .attr-chips').forEach(function(group){
+    var active=group.querySelector('.attr-chip.active');
+    if(active && active.textContent!=='不限') count++;
+  });
+  var badge=document.getElementById('featureCount');
+  if(count>0){
+    badge.textContent=count;
+    badge.style.display='';
+  } else {
+    badge.style.display='none';
+  }
+}
+
 function handleFaceUpload(input){
   if(!input.files||!input.files[0])return;
   var file=input.files[0];
@@ -823,11 +1040,28 @@ function getActiveTimeLabel(){
 
 function doSearch(){
   var timeLabel=getActiveTimeLabel();
-  var nameVal=document.getElementById('nameSearchInput').value.trim();
-  if(nameVal){
-    showToast('正在检索"'+nameVal+'"（'+timeLabel+'）… 发现 23 条抓拍记录');
+  var featureWrap=document.getElementById('featureSearchWrap');
+  var isFeature=featureWrap && featureWrap.style.display!=='none';
+  if(isFeature){
+    var attrs=[];
+    document.querySelectorAll('#featureSearchWrap .attr-chips').forEach(function(group){
+      var active=group.querySelector('.attr-chip.active');
+      if(active && active.textContent!=='不限') attrs.push(active.textContent);
+    });
+    var targetBtn=document.querySelector('.target-btn.active');
+    var targetType=targetBtn?targetBtn.textContent.trim():'人脸';
+    if(attrs.length>0){
+      showToast('特征检索（'+targetType+'）：'+attrs.join('、')+'（'+timeLabel+'）');
+    } else {
+      showToast('正在检索全部'+targetType+'数据（'+timeLabel+'）…');
+    }
   } else {
-    showToast('检索完成（'+timeLabel+'）：发现 23 条抓拍记录');
+    var nameVal=document.getElementById('nameSearchInput').value.trim();
+    if(nameVal){
+      showToast('正在检索"'+nameVal+'"（'+timeLabel+'）… 发现 23 条抓拍记录');
+    } else {
+      showToast('检索完成（'+timeLabel+'）：发现 23 条抓拍记录');
+    }
   }
 }
 
